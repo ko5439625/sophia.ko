@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useAdmin } from "@/lib/admin-context"
 import { applyAIContent } from "@/lib/content-mapper"
-import { clearAllOverrides } from "@/lib/content-store"
+import { clearAllOverridesSync } from "@/lib/content-store"
 
 export default function AdminBar() {
   const { isAdmin, isLoggedIn, login, logout, setIsAdmin } = useAdmin()
@@ -84,7 +84,7 @@ export default function AdminBar() {
 
   const handleReset = () => {
     if (confirm("Reset all content to defaults? This cannot be undone.")) {
-      clearAllOverrides()
+      clearAllOverridesSync()
       window.location.reload()
     }
   }

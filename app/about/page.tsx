@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useAdmin } from "@/lib/admin-context"
-import { getContent, setOverride } from "@/lib/content-store"
+import { getContent, setOverrideSync, initializeContentCache } from "@/lib/content-store"
+import { loadProfileImage, uploadProfileImage, saveProfileImageData, saveCropSettings } from "@/lib/profile-image-store"
 import EditableField from "@/components/editable-field"
 
 export default function AboutPage() {
@@ -17,34 +18,38 @@ export default function AboutPage() {
   const [, forceUpdate] = useState(0)
 
   useEffect(() => {
+    // Initialize content cache from Supabase
+    initializeContentCache()
+
     const savedLanguage = localStorage.getItem("language") as "ko" | "en"
     if (savedLanguage) setLanguage(savedLanguage)
-  const savedImage = localStorage.getItem("profileImage")
-  if (savedImage) setProfileImage(savedImage)
-  const savedCrop = localStorage.getItem("profileCrop")
-  if (savedCrop) {
-    try {
-      const parsed = JSON.parse(savedCrop)
-      setCropZoom(parsed.zoom ?? 1)
-      setCropOffset(parsed.offset ?? { x: 0, y: 0 })
-    } catch {}
-  }
+
+    // Load profile image from Supabase
+    loadProfileImage().then((data) => {
+      if (data) {
+        setProfileImage(data.imageUrl)
+        setCropZoom(data.cropZoom)
+        setCropOffset({ x: data.cropOffsetX, y: data.cropOffsetY })
+      }
+    })
   }, [])
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string
-      setProfileImage(result)
-      localStorage.setItem("profileImage", result)
+
+    // Upload to Supabase Storage
+    const imageUrl = await uploadProfileImage(file)
+    if (imageUrl) {
+      setProfileImage(imageUrl)
+      // Save image data with current crop settings
+      await saveProfileImageData(imageUrl, cropZoom, cropOffset.x, cropOffset.y)
     }
-    reader.readAsDataURL(file)
   }
 
   const saveCrop = (zoom: number, offset: { x: number; y: number }) => {
-    localStorage.setItem("profileCrop", JSON.stringify({ zoom, offset }))
+    // Save to Supabase
+    saveCropSettings(zoom, offset.x, offset.y)
   }
 
   const handleCropMouseDown = (e: React.MouseEvent) => {
@@ -72,7 +77,7 @@ export default function AboutPage() {
   }
 
   const c = (key: string, fallback: string) => getContent(`about.${language}.${key}`, fallback)
-  const save = (key: string) => (val: string) => { setOverride(`about.${language}.${key}`, val); forceUpdate(n => n + 1) }
+  const save = (key: string) => (val: string) => { setOverrideSync(`about.${language}.${key}`, val); forceUpdate(n => n + 1) }
 
   const defaultInfo = language === "ko" ? [
     { q: "QA 업무를 시작하게 된 계기는?", a: "대학교에서 컴퓨터공학을 전공하며 개발 프로젝트를 진행할 때, 완벽하다고 생각했던 코드에서 예상치 못한 버그들을 발견하는 경험을 했습니다. 그때 '사용자 관점에서 제품을 바라보는 것'의 중요성을 깨달았고, 품질 보증이라는 분야에 매력을 느꼈습니다." },
