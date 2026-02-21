@@ -1,8 +1,14 @@
-import { updateSession } from '@/lib/supabase/middleware'
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  // Middleware disabled - uncomment below to enable Supabase auth
+  // Make sure to set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
+  // in your Vercel environment variables
+
+  // import { updateSession } from '@/lib/supabase/middleware'
+  // return await updateSession(request)
+
+  return NextResponse.next()
 }
 
 export const config = {
