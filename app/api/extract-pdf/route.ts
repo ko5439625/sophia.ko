@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
+  // PDF text extraction is disabled for now
+  // To enable: install pdf-parse (npm install pdf-parse)
+
+  return NextResponse.json({
+    error: "PDF text extraction feature is currently disabled",
+    fallback: "PDF 파일에서 텍스트를 추출하는 기능은 현재 비활성화되어 있습니다. 텍스트를 직접 입력해주세요.",
+    message: "This feature requires the pdf-parse library. Please enter text manually instead."
+  }, { status: 501 })
+
+  /* ORIGINAL CODE - Enable if pdf-parse is installed
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -9,29 +19,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Convert PDF to text using pdf-parse or similar
-    // For now, we'll use a simple approach with FormData
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // You can use libraries like pdf-parse here
-    // For simplicity, we'll return a placeholder
-    // In production, install: npm install pdf-parse
-
     try {
-      // Dynamically import pdf-parse (optional dependency)
-      let pdfParse
-      try {
-        pdfParse = (await import('pdf-parse')).default
-      } catch (importError) {
-        // pdf-parse not installed, return helpful message
-        return NextResponse.json({
-          error: "PDF parsing library not installed",
-          fallback: "PDF 파일에서 텍스트를 추출하려면 pdf-parse 라이브러리가 필요합니다. 대신 텍스트를 직접 입력해주세요.",
-          installCommand: "npm install pdf-parse"
-        }, { status: 501 })
-      }
-
+      const pdfParse = (await import('pdf-parse')).default
       const data = await pdfParse(buffer)
 
       return NextResponse.json({
@@ -40,7 +32,6 @@ export async function POST(request: Request) {
         pages: data.numpages
       })
     } catch (error) {
-      // If pdf-parse is not installed, return error message
       return NextResponse.json({
         error: "PDF parsing failed",
         fallback: "PDF 파일에서 텍스트를 추출하려면 pdf-parse 라이브러리가 필요합니다. 대신 텍스트를 직접 입력해주세요."
@@ -54,4 +45,5 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
+  */
 }
