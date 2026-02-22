@@ -19,8 +19,19 @@ export async function POST(request: Request) {
     // In production, install: npm install pdf-parse
 
     try {
-      // Dynamically import pdf-parse
-      const pdfParse = (await import('pdf-parse')).default
+      // Dynamically import pdf-parse (optional dependency)
+      let pdfParse
+      try {
+        pdfParse = (await import('pdf-parse')).default
+      } catch (importError) {
+        // pdf-parse not installed, return helpful message
+        return NextResponse.json({
+          error: "PDF parsing library not installed",
+          fallback: "PDF 파일에서 텍스트를 추출하려면 pdf-parse 라이브러리가 필요합니다. 대신 텍스트를 직접 입력해주세요.",
+          installCommand: "npm install pdf-parse"
+        }, { status: 501 })
+      }
+
       const data = await pdfParse(buffer)
 
       return NextResponse.json({
@@ -31,7 +42,7 @@ export async function POST(request: Request) {
     } catch (error) {
       // If pdf-parse is not installed, return error message
       return NextResponse.json({
-        error: "PDF parsing library not installed. Please install pdf-parse: npm install pdf-parse",
+        error: "PDF parsing failed",
         fallback: "PDF 파일에서 텍스트를 추출하려면 pdf-parse 라이브러리가 필요합니다. 대신 텍스트를 직접 입력해주세요."
       }, { status: 500 })
     }
