@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase"
+import { translateObject } from "@/lib/translate"
 
 const USER_ID = "sophia.ko"
 
@@ -20,14 +21,18 @@ export interface Project {
 
 let projectsCache: Project[] | null = null
 
+// 프로젝트에서 번역할 필드
+const PROJECT_TRANSLATE_FIELDS = ['title', 'overview', 'background', 'category', 'tech_stack']
+
 export async function loadProjects(language: string = "ko"): Promise<Project[]> {
   const supabase = createClient()
 
+  // 항상 한국어 데이터만 로드
   const { data, error } = await supabase
     .from("projects")
     .select("*")
     .eq("user_id", USER_ID)
-    .eq("language", language)
+    .eq("language", "ko") // 항상 한국어 데이터 로드
     .order("display_order", { ascending: true })
 
   if (error) {
@@ -35,7 +40,25 @@ export async function loadProjects(language: string = "ko"): Promise<Project[]> 
     return []
   }
 
-  projectsCache = data || []
+  if (!data) return []
+
+  // 영어 요청 시 실시간 번역
+  if (language === "en") {
+    const translatedData = await Promise.all(
+      data.map(async (project) => ({
+        ...project,
+        title: await translateObject({ title: project.title }, ['title']).then(r => r.title),
+        overview: await translateObject({ overview: project.overview }, ['overview']).then(r => r.overview),
+        background: project.background
+          ? await translateObject({ background: project.background }, ['background']).then(r => r.background)
+          : null,
+      }))
+    )
+    projectsCache = translatedData
+    return translatedData
+  }
+
+  projectsCache = data
   return projectsCache
 }
 
@@ -46,4 +69,95 @@ export function getProjectsByCategory(category: string, language: string = "ko")
 
 export function getAllProjects(language: string = "ko"): Project[] {
   return projectsCache || []
+}
+
+export async function addProject(
+  language: string,
+  projectData: {
+    project_id: string
+    title: string
+    category: string
+    overview: string
+    background?: string
+    tech_stack?: string[]
+    details?: Record<string, any>
+  }
+): Promise<Project | null> {
+  const supabase = createClient()
+
+  // Get max display_order
+  const { data: existing } = await supabase
+    .from("projects")
+    .select("display_order")
+    .eq("user_id", USER_ID)
+    .eq("language", language)
+    .order("display_order", { ascending: false })
+    .limit(1)
+
+  const displayOrder = existing && existing.length > 0 ? existing[0].display_order + 1 : 0
+
+  const { data, error } = await supabase
+    .from("projects")
+    .insert({
+      user_id: USER_ID,
+      language,
+      project_id: projectData.project_id,
+      title: projectData.title,
+      category: projectData.category,
+      overview: projectData.overview,
+      background: projectData.background || null,
+      tech_stack: projectData.tech_stack || [],
+      details: projectData.details || {},
+      display_order: displayOrder
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error("Error adding project:", error)
+    return null
+  }
+
+  // Clear cache
+  projectsCache = null
+  return data
+}
+
+export async function updateProject(
+  id: string,
+  projectData: Partial<Project>
+): Promise<boolean> {
+  const supabase = createClient()
+
+  const { error } = await supabase
+    .from("projects")
+    .update({ ...projectData, updated_at: new Date().toISOString() })
+    .eq("id", id)
+
+  if (error) {
+    console.error("Error updating project:", error)
+    return false
+  }
+
+  // Clear cache
+  projectsCache = null
+  return true
+}
+
+export async function deleteProject(id: string): Promise<boolean> {
+  const supabase = createClient()
+
+  const { error } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", id)
+
+  if (error) {
+    console.error("Error deleting project:", error)
+    return false
+  }
+
+  // Clear cache
+  projectsCache = null
+  return true
 }

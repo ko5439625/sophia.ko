@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useAdmin } from "@/lib/admin-context"
 import { getContent, setOverrideSync, initializeContentCache } from "@/lib/content-store"
 import { loadProfileImage, uploadProfileImage, saveProfileImageData, saveCropSettings } from "@/lib/profile-image-store"
+import { updateFooterFromAbout } from "@/lib/footer-store"
 import EditableField from "@/components/editable-field"
 
 export default function AboutPage() {
@@ -16,6 +17,8 @@ export default function AboutPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { isAdmin, isLoggedIn } = useAdmin()
   const [, forceUpdate] = useState(0)
+  const [aiLoading, setAiLoading] = useState<number | null>(null)
+  const [aiError, setAiError] = useState("")
 
   useEffect(() => {
     // Initialize content cache from Supabase
@@ -77,7 +80,90 @@ export default function AboutPage() {
   }
 
   const c = (key: string, fallback: string) => getContent(`about.${language}.${key}`, fallback)
-  const save = (key: string) => (val: string) => { setOverrideSync(`about.${language}.${key}`, val); forceUpdate(n => n + 1) }
+  const save = (key: string) => (val: string) => {
+    setOverrideSync(`about.${language}.${key}`, val)
+
+    // Sync contact info to footer
+    const contactMatch = key.match(/^contact_(\d+)_(l|v)$/)
+    if (contactMatch) {
+      const [, index, field] = contactMatch
+      updateFooterFromAbout(parseInt(index), field as 'l' | 'v', val)
+    }
+
+    forceUpdate(n => n + 1)
+  }
+
+  const handleAIImprove = async (index: number) => {
+    const question = c(`info_${index}_q`, defaultInfo[index]?.q || "")
+    const answer = c(`info_${index}_a`, defaultInfo[index]?.a || "")
+
+    if (!question.trim() || !answer.trim()) {
+      setAiError(language === "ko" ? "먼저 질문과 답변을 입력하세요" : "Please enter question and answer first")
+      return
+    }
+
+    setAiLoading(index)
+    setAiError("")
+
+    try {
+      // 현재 언어로 개선
+      const response = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: 'about QA improvement',
+          type: 'about',
+          language,
+          formData: {
+            question,
+            answer
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'AI 생성 실패')
+      }
+
+      const data = await response.json()
+
+      // 현재 언어로 저장
+      if (data.question) save(`info_${index}_q`)(data.question)
+      if (data.answer) save(`info_${index}_a`)(data.answer)
+
+      // 반대 언어로도 번역해서 저장
+      const targetLang = language === 'ko' ? 'en' : 'ko'
+      const translateResponse = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: 'about QA improvement',
+          type: 'about',
+          language: targetLang,
+          formData: {
+            question: data.question || question,
+            answer: data.answer || answer
+          }
+        }),
+      })
+
+      if (translateResponse.ok) {
+        const translateData = await translateResponse.json()
+        if (translateData.question) {
+          setOverrideSync(`about.${targetLang}.info_${index}_q`, translateData.question)
+        }
+        if (translateData.answer) {
+          setOverrideSync(`about.${targetLang}.info_${index}_a`, translateData.answer)
+        }
+      }
+    } catch (error: any) {
+      console.error("AI 개선 오류:", error)
+      setAiError(error.message || (language === "ko" ? "AI 생성 중 오류가 발생했습니다" : "Error generating with AI"))
+    } finally {
+      setAiLoading(null)
+    }
+  }
 
   const defaultInfo = language === "ko" ? [
     { q: "QA 업무를 시작하게 된 계기는?", a: "대학교에서 컴퓨터공학을 전공하며 개발 프로젝트를 진행할 때, 완벽하다고 생각했던 코드에서 예상치 못한 버그들을 발견하는 경험을 했습니다. 그때 '사용자 관점에서 제품을 바라보는 것'의 중요성을 깨달았고, 품질 보증이라는 분야에 매력을 느꼈습니다." },
@@ -131,6 +217,7 @@ export default function AboutPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-12">
+
         {/* Profile Section */}
         <div className="bg-white/60 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-8 mb-12">
           <div className="flex flex-col lg:flex-row items-center gap-8">
@@ -277,7 +364,33 @@ export default function AboutPage() {
                     <span className="text-xl text-gray-600">Q</span>
                   </div>
                   <div className="flex-1">
-                    <EditableField value={c(`info_${i}_q`, item.q)} onSave={save(`info_${i}_q`)} as="h3" className="font-semibold text-gray-900 mb-3 text-lg" />
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <EditableField value={c(`info_${i}_q`, item.q)} onSave={save(`info_${i}_q`)} as="h3" className="font-semibold text-gray-900 text-lg flex-1" />
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleAIImprove(i)}
+                          disabled={aiLoading === i}
+                          className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                          {aiLoading === i ? (
+                            <>
+                              <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              {language === "ko" ? "개선 중..." : "Improving..."}
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              {language === "ko" ? "AI 개선" : "AI Improve"}
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                     <EditableField value={c(`info_${i}_a`, item.a)} onSave={save(`info_${i}_a`)} as="p" className="text-gray-700 leading-relaxed" multiline />
                   </div>
                 </div>

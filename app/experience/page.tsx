@@ -2,290 +2,561 @@
 
 import { useState, useEffect } from "react"
 import { useAdmin } from "@/lib/admin-context"
-import { getContent, setOverride } from "@/lib/content-store"
+import { loadProjects, addProject, updateProject, deleteProject, type Project } from "@/lib/projects-store"
 import EditableField from "@/components/editable-field"
+import { AddItemModal } from "@/components/add-item-modal"
+import { AddProjectModal } from "@/components/add-project-modal"
+import { AdminSettingsModal } from "@/components/admin-settings-modal"
+import { getContent, setOverrideSync } from "@/lib/content-store"
+import {
+  loadExperienceData,
+  addExperienceData,
+  updateExperienceData,
+  deleteExperienceData,
+  type ExperienceData
+} from "@/lib/experience-store"
+import { loadFooterData, type FooterItem } from "@/lib/footer-store"
+import { generateContent, type AIGenerateOptions } from "@/lib/ai-helper"
+
+function AdminLoginButton({ language }: { language: "ko" | "en" }) {
+  const { isAdmin, login, logout } = useAdmin()
+
+  const handleLogin = () => {
+    const id = prompt(language === "ko" ? "아이디를 입력하세요:" : "Enter ID:")
+    const password = prompt(language === "ko" ? "비밀번호를 입력하세요:" : "Enter password:")
+    if (id && password) {
+      if (login(id, password)) {
+        alert(language === "ko" ? "로그인 성공!" : "Login successful!")
+        window.location.reload()
+      } else {
+        alert(language === "ko" ? "로그인 실패" : "Login failed")
+      }
+    }
+  }
+
+  const handleLogout = () => {
+    logout()
+    window.location.reload()
+  }
+
+  if (isAdmin) {
+    return (
+      <button
+        onClick={handleLogout}
+        className="fixed bottom-6 left-6 px-4 py-2 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 transition-colors text-sm z-50"
+      >
+        🔓 {language === "ko" ? "로그아웃" : "Logout"}
+      </button>
+    )
+  }
+
+  return (
+    <button
+      onClick={handleLogin}
+      className="fixed bottom-6 left-6 px-4 py-2 bg-gray-800 text-white rounded-lg shadow-lg hover:bg-gray-700 transition-colors text-sm z-50"
+    >
+      🔒 {language === "ko" ? "관리자 로그인" : "Admin Login"}
+    </button>
+  )
+}
 
 export default function ExperiencePage() {
   const [language, setLanguage] = useState<"ko" | "en">("ko")
-  const [selectedProject, setSelectedProject] = useState<number | null>(null)
-  const [expandedCompany, setExpandedCompany] = useState<string | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"overview" | "projects" | "vision">("overview")
+  const [expandedCompany, setExpandedCompany] = useState<string | null>(null)
+  const [selectedProject, setSelectedProject] = useState<number | null>(null)
   const { isAdmin } = useAdmin()
   const [, forceUpdate] = useState(0)
+
+  // Dynamic data from Supabase
+  const [timelineData, setTimelineData] = useState<ExperienceData[]>([])
+  const [highlightsData, setHighlightsData] = useState<ExperienceData[]>([])
+  const [metricsData, setMetricsData] = useState<ExperienceData[]>([])
+  const [skillsData, setSkillsData] = useState<ExperienceData[]>([])
+  const [certificationsData, setCertificationsData] = useState<ExperienceData[]>([])
+  const [approachData, setApproachData] = useState<ExperienceData[]>([])
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [modalType, setModalType] = useState<string>("")
+  const [editingItem, setEditingItem] = useState<ExperienceData | null>(null)
+  const [showProjectModal, setShowProjectModal] = useState(false)
+  const [selectedCompany, setSelectedCompany] = useState<string>("")
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+
+  // AI states
+  const [aiLoading, setAiLoading] = useState<string | null>(null)
+  const [aiError, setAiError] = useState("")
+
+  // Footer data
+  const [footerContact, setFooterContact] = useState<FooterItem[]>([])
+  const [footerLinks, setFooterLinks] = useState<FooterItem[]>([])
+  const [footerExpertise, setFooterExpertise] = useState<FooterItem[]>([])
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem("language") as "ko" | "en"
     if (savedLanguage) setLanguage(savedLanguage)
+
     const params = new URLSearchParams(window.location.search)
     const tab = params.get("tab")
     if (tab && ["overview", "projects", "vision"].includes(tab)) {
       setActiveTab(tab as typeof activeTab)
     }
+
+    loadProjects(savedLanguage || "ko").then((data) => {
+      setProjects(data)
+    })
+
+    // Load all experience data
+    loadAllExperienceData(savedLanguage || "ko")
+    loadFooterSections()
   }, [])
+
+  const loadAllExperienceData = async (lang: string) => {
+    console.log("=== loadAllExperienceData 시작, language:", lang)
+    setLoading(true)
+    try {
+      const [timeline, highlights, metrics, skills, certs, approach] = await Promise.all([
+        loadExperienceData(lang, "timeline"),
+        loadExperienceData(lang, "highlight"),
+        loadExperienceData(lang, "metric"),
+        loadExperienceData(lang, "skill"),
+        loadExperienceData(lang, "certification"),
+        loadExperienceData(lang, "approach")
+      ])
+
+      console.log("Loaded timeline:", timeline)
+      console.log("Loaded highlights:", highlights)
+      console.log("Loaded metrics:", metrics)
+      console.log("Loaded skills:", skills)
+      console.log("Loaded certs:", certs)
+      console.log("Loaded approach:", approach)
+
+      setTimelineData(timeline)
+      setHighlightsData(highlights)
+      setMetricsData(metrics)
+      setSkillsData(skills)
+      setCertificationsData(certs)
+      setApproachData(approach)
+      console.log("=== loadAllExperienceData 완료 ===")
+    } catch (error) {
+      console.error("Error loading experience data:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadFooterSections = async () => {
+    try {
+      const [contact, links, expertise] = await Promise.all([
+        loadFooterData("contact"),
+        loadFooterData("links"),
+        loadFooterData("expertise")
+      ])
+      setFooterContact(contact)
+      setFooterLinks(links)
+      setFooterExpertise(expertise)
+    } catch (error) {
+      console.error("Error loading footer data:", error)
+    }
+  }
+
+  useEffect(() => {
+    loadProjects(language).then((data) => {
+      setProjects(data)
+    })
+    loadAllExperienceData(language)
+  }, [language])
 
   const handleLanguageChange = (newLanguage: "ko" | "en") => {
     setLanguage(newLanguage)
     localStorage.setItem("language", newLanguage)
   }
 
-  const c = (key: string, fallback: string) => getContent(`exp.${language}.${key}`, fallback)
-  const save = (key: string) => (val: string) => { setOverride(`exp.${language}.${key}`, val); forceUpdate(n => n + 1) }
-  const vc = (key: string, fallback: string) => getContent(`vision.${language}.${key}`, fallback)
-  const vsave = (key: string) => (val: string) => { setOverride(`vision.${language}.${key}`, val); forceUpdate(n => n + 1) }
-
-  const content = {
-    ko: {
-      title: "Experience",
-      subtitle: "5년간 제품에 품질을 구축해온 경험",
-      backButton: "검색으로 돌아가기",
-      tabs: { overview: "개요", projects: "프로젝트", vision: "비전" },
-      overview: {
-        summary: "5년간 다양한 도메인에서 QA 업무를 수행하며 품질 보증의 전 영역을 경험했습니다. 단순한 테스트 실행을 넘어 품질 문화 구축과 프로세스 개선에 집중하고 있습니다.",
-        highlights: [
-          { title: "테스트 자동화 전문성", description: "Selenium, Cypress, Appium을 활용한 E2E 자동화 구축", impact: "테스트 시간 70% 단축" },
-          { title: "크로스 플랫폼 경험", description: "iOS, Android, Web 플랫폼 전반의 테스트 경험", impact: "8개 플랫폼 동시 지원" },
-          { title: "보안 테스트 전문성", description: "OWASP 기반 보안 취약점 검증 및 침투 테스트", impact: "보안 이슈 0건 달성" },
-          { title: "성능 최적화", description: "부하 테스트 및 성능 병목 지점 분석", impact: "응답 시간 50% 개선" },
-        ],
-        timeline: [
-          { year: "2020", role: "Junior QA Engineer", company: "스타트업 A", focus: "모바일 앱 테스팅" },
-          { year: "2021", role: "QA Engineer", company: "스타트업 A", focus: "테스트 자동화" },
-          { year: "2022", role: "Senior QA Engineer", company: "핀테크 B", focus: "결제 시스템 QA" },
-          { year: "2023", role: "Senior QA Engineer", company: "핀테크 B", focus: "보안 & 성능 테스트" },
-          { year: "2024", role: "Lead QA Engineer", company: "테크 C", focus: "QA 프로세스 혁신" },
-        ],
-      },
-      skills: [
-        { category: "모바일 테스팅", tools: ["XCTest", "XCUITest", "TestFlight", "Espresso", "UI Automator", "Firebase Test Lab"] },
-        { category: "웹 테스팅", tools: ["Selenium", "Cypress", "Playwright", "Postman", "REST Assured", "Newman"] },
-        { category: "자동화 & DevOps", tools: ["Python", "Java", "Jenkins", "GitHub Actions", "JMeter", "K6"] },
-      ],
-      qaProjects: [
-        {
-          title: "결제 시스템 품질 보증", period: "2022.03 - 2022.08", type: "금융", role: "Lead QA Engineer", team: "QA 2명, 개발 5명",
-          achievements: ["43개 버그 발견", "99.7% 성공률", "치명적 이슈 0건", "PCI DSS 인증 통과"], tags: ["보안", "결제", "금융", "규제"],
-          challenge: "금융 서비스의 특성상 단 하나의 오류도 용납할 수 없는 상황에서 다양한 결제 수단과 예외 상황을 모두 검증해야 했습니다.",
-          solution: "체계적인 테스트 시나리오 설계와 보안 테스트를 통해 모든 결제 플로우를 검증했습니다. 특히 동시 결제, 네트워크 오류, 부분 결제 등의 엣지 케이스를 집중적으로 테스트했습니다.",
-          result: "99.7%의 높은 성공률을 달성하며 서비스 출시 후 6개월간 결제 관련 치명적 이슈가 발생하지 않았습니다. PCI DSS 인증도 성공적으로 통과했습니다.",
-          technologies: ["Postman", "JMeter", "OWASP ZAP", "Burp Suite"],
-        },
-        {
-          title: "모바일 앱 성능 최적화", period: "2023.05 - 2023.12", type: "모바일", role: "Senior QA Engineer", team: "QA 3명, 개발 8명",
-          achievements: ["로딩 시간 50% 개선", "0.1% 크래시율", "사용자 만족도 95%", "메모리 사용량 30% 감소"], tags: ["성능", "모바일", "UX", "최적화"],
-          challenge: "사용자 증가로 인한 앱 성능 저하와 높은 크래시율로 인해 사용자 이탈이 증가하는 상황이었습니다.",
-          solution: "다양한 디바이스와 네트워크 환경에서의 성능 테스트를 수행하고, 메모리 누수와 배터리 소모 패턴을 분석했습니다.",
-          result: "앱 로딩 시간을 50% 단축하고 크래시율을 0.1%까지 낮췄습니다. 사용자 만족도가 95%까지 향상되었습니다.",
-          technologies: ["Xcode Instruments", "Android Profiler", "Firebase Performance", "New Relic"],
-        },
-        {
-          title: "API 보안 강화 프로젝트", period: "2023.01 - 2023.04", type: "보안", role: "Security QA Specialist", team: "QA 2명, 보안팀 3명, 개발 4명",
-          achievements: ["15개 취약점 발견", "100% 보안 커버리지", "보안 침해 0건", "보안 가이드라인 수립"], tags: ["보안", "API", "침투테스트", "OWASP"],
-          challenge: "외부 API 연동 증가와 함께 보안 위협이 높아져 체계적인 보안 테스트가 필요한 상황이었습니다.",
-          solution: "OWASP API Top 10을 기반으로 한 보안 테스트 체크리스트를 작성하고, 자동화된 보안 스캔 도구를 도입했습니다.",
-          result: "15개의 보안 취약점을 사전에 발견하여 수정했고, 서비스 운영 중 보안 침해 사고가 0건 발생했습니다.",
-          technologies: ["OWASP ZAP", "Burp Suite", "Nessus", "Postman"],
-        },
-      ],
-      processProjects: [
-        {
-          title: "테스트 자동화 프레임워크 구축", period: "2021.01 - 2021.06", type: "자동화", role: "Automation Engineer", team: "QA 2명, DevOps 2명",
-          achievements: ["테스트 시간 70% 단축", "커버리지 95%", "CI/CD 통합", "유지보수성 향상"], tags: ["자동화", "프레임워크", "CI/CD", "효율성"],
-          challenge: "수동 테스트로 인한 긴 테스트 사이클과 반복적인 회귀 테스트로 인해 개발 속도가 저하되고 있었습니다.",
-          solution: "Page Object Model 패턴을 적용한 확장 가능한 자동화 프레임워크를 설계했습니다.",
-          result: "테스트 실행 시간을 70% 단축하고 테스트 커버리지를 95%까지 향상시켰습니다.",
-          technologies: ["Selenium", "Python", "Jenkins", "Docker", "Allure"],
-        },
-        {
-          title: "QA 프로세스 표준화", period: "2023.03 - 2023.09", type: "프로세스", role: "QA Process Lead", team: "QA 5명, PM 2명, 개발팀 리더 3명",
-          achievements: ["팀 효율성 40% 향상", "문서화 완료", "타팀 도입", "교육 프로그램 운영"], tags: ["프로세스", "표준화", "효율성", "협업"],
-          challenge: "팀별로 다른 QA 프로세스로 인해 일관성이 부족하고, 신규 팀원의 온보딩이 어려운 상황이었습니다.",
-          solution: "애자일 환경에 맞는 QA 프로세스를 재설계하고, 테스트 케이스 관리 도구를 도입했습니다.",
-          result: "팀 효율성이 40% 향상되었고, 신규 팀원 온보딩 시간이 50% 단축되었습니다.",
-          technologies: ["Jira", "TestRail", "Confluence", "Slack"],
-        },
-        {
-          title: "품질 문화 혁신 이니셔티브", period: "2024.01 - Present", type: "문화", role: "Quality Culture Lead", team: "QA 전체 8명, 개발팀 전체 25명",
-          achievements: ["교육 프로그램 런칭", "품질 지표 대시보드", "크로스팀 협업 강화", "품질 마인드셋 확산"], tags: ["문화", "교육", "리더십", "혁신"],
-          challenge: "개발팀과 QA팀 간의 사일로 현상과 품질에 대한 인식 차이로 인해 협업 효율성이 떨어지는 상황이었습니다.",
-          solution: "전사 품질 교육 프로그램을 기획하고, 개발자 대상 테스트 작성 가이드를 제작했습니다.",
-          result: "개발팀의 품질 의식이 크게 향상되었고, 버그 발견 시점이 개발 단계로 앞당겨졌습니다.",
-          technologies: ["Grafana", "Elasticsearch", "Slack", "Notion"],
-        },
-      ],
-      achievements: {
-        metrics: [
-          { label: "프로젝트 성공률", value: "99.7%", description: "15개 프로젝트 중 모든 프로젝트 성공적 완료" },
-          { label: "버그 발견율", value: "95%", description: "프로덕션 배포 전 95% 이상의 버그 사전 발견" },
-          { label: "테스트 자동화율", value: "85%", description: "반복 테스트의 85%를 자동화로 전환" },
-          { label: "팀 효율성 향상", value: "40%", description: "프로세스 개선을 통한 팀 생산성 향상" },
-        ],
-        certifications: [
-          { name: "ISTQB Foundation Level", year: "2021", issuer: "ISTQB" },
-          { name: "AWS Certified Cloud Practitioner", year: "2022", issuer: "Amazon" },
-          { name: "Certified Ethical Hacker (CEH)", year: "2023", issuer: "EC-Council" },
-        ],
-        awards: [
-          { title: "올해의 QA 엔지니어", year: "2023", organization: "회사 내부" },
-          { title: "프로세스 혁신상", year: "2023", organization: "회사 내부" },
-          { title: "고객 만족 기여상", year: "2024", organization: "회사 내부" },
-        ],
-      },
-      vision: {
-        philosophy: { quote: "품질은 우연이 아니라 의도의 결과입니다", author: "- Sophia Ko", description: "5년간의 경험을 통해 깨달은 것은 진정한 품질은 마지막에 테스트로 만들어지는 것이 아니라, 처음부터 품질을 염두에 두고 설계하고 개발할 때 나온다는 것입니다." },
-        approach: [
-          { title: "사용자 중심 사고", description: "기술적 완성도보다 사용자 경험을 우선시합니다", impact: "사용자 만족도 95% 달성" },
-          { title: "데이터 기반 의사결정", description: "직감이 아닌 명확한 데이터로 우선순위를 결정합니다", impact: "의사결정 속도 60% 향상" },
-          { title: "예방적 품질 관리", description: "문제를 찾는 것보다 문제가 생기지 않게 하는 것", impact: "프로덕션 버그 80% 감소" },
-          { title: "지속적인 개선", description: "완벽한 프로세스는 없다, 계속 발전시켜야 한다", impact: "팀 효율성 40% 향상" },
-        ],
-        goals: [
-          { timeline: "2025년", title: "AI 기반 QA 도구 개발", description: "머신러닝을 활용한 자동 테스트 케이스 생성 도구를 개발하여 테스트 효율성을 극대화합니다.", expectedImpact: "테스트 케이스 작성 시간 70% 단축" },
-          { timeline: "2026년", title: "QA 교육 플랫폼 구축", description: "주니어 QA 엔지니어들을 위한 체계적인 교육 플랫폼을 만들어 업계 전체의 품질 수준을 높입니다.", expectedImpact: "업계 QA 역량 전반적 향상" },
-          { timeline: "2027년+", title: "품질 우선 문화 전파", description: "기업 문화 차원에서 품질을 최우선으로 생각하는 조직을 만드는 컨설팅을 제공합니다.", expectedImpact: "품질 우선 기업 문화 확산" },
-        ],
-        contacts: [
-          { label: "이메일", value: "sophia.ko@email.com", icon: "M" },
-          { label: "전화", value: "+82 10-1234-5678", icon: "P" },
-          { label: "GitHub", value: "github.com/sophia-ko", icon: "G" },
-          { label: "LinkedIn", value: "linkedin.com/in/sophia-ko", icon: "L" },
-        ],
-        ctaTitle: "함께 품질을 구축할 준비가 되셨나요?",
-        ctaDescription: "사용자가 사랑하고 개발자가 자랑스러워하는 제품을 만들어봅시다.",
-      },
-    },
-    en: {
-      title: "Experience",
-      subtitle: "5 years of building quality into products",
-      backButton: "Back to Search",
-      tabs: { overview: "Overview", projects: "Projects", vision: "Vision" },
-      overview: {
-        summary: "Over 5 years of QA experience across various domains, covering all aspects of quality assurance. Focus on building quality culture and process improvement beyond simple test execution.",
-        highlights: [
-          { title: "Test Automation Expertise", description: "E2E automation using Selenium, Cypress, and Appium", impact: "70% reduction in test time" },
-          { title: "Cross-Platform Experience", description: "Testing experience across iOS, Android, and Web platforms", impact: "Supporting 8 platforms simultaneously" },
-          { title: "Security Testing Expertise", description: "OWASP-based security vulnerability verification and penetration testing", impact: "Zero security issues achieved" },
-          { title: "Performance Optimization", description: "Load testing and performance bottleneck analysis", impact: "50% improvement in response time" },
-        ],
-        timeline: [
-          { year: "2020", role: "Junior QA Engineer", company: "Startup A", focus: "Mobile App Testing" },
-          { year: "2021", role: "QA Engineer", company: "Startup A", focus: "Test Automation" },
-          { year: "2022", role: "Senior QA Engineer", company: "Fintech B", focus: "Payment System QA" },
-          { year: "2023", role: "Senior QA Engineer", company: "Fintech B", focus: "Security & Performance Testing" },
-          { year: "2024", role: "Lead QA Engineer", company: "Tech C", focus: "QA Process Innovation" },
-        ],
-      },
-      skills: [
-        { category: "Mobile Testing", tools: ["XCTest", "XCUITest", "TestFlight", "Espresso", "UI Automator", "Firebase Test Lab"] },
-        { category: "Web Testing", tools: ["Selenium", "Cypress", "Playwright", "Postman", "REST Assured", "Newman"] },
-        { category: "Automation & DevOps", tools: ["Python", "Java", "Jenkins", "GitHub Actions", "JMeter", "K6"] },
-      ],
-      qaProjects: [
-        {
-          title: "Payment System Quality Assurance", period: "2022.03 - 2022.08", type: "Financial", role: "Lead QA Engineer", team: "2 QA, 5 Developers",
-          achievements: ["43 bugs found", "99.7% success rate", "Zero critical issues", "PCI DSS certification passed"], tags: ["Security", "Payment", "Financial", "Compliance"],
-          challenge: "In financial services, zero tolerance for errors required verification of all payment methods and exception scenarios.",
-          solution: "Systematic test scenario design and security testing verified all payment flows.",
-          result: "Achieved 99.7% success rate with no critical payment-related issues for 6 months post-launch.",
-          technologies: ["Postman", "JMeter", "OWASP ZAP", "Burp Suite"],
-        },
-        {
-          title: "Mobile App Performance Optimization", period: "2023.05 - 2023.12", type: "Mobile", role: "Senior QA Engineer", team: "3 QA, 8 Developers",
-          achievements: ["50% loading time improvement", "0.1% crash rate", "95% user satisfaction", "30% memory reduction"], tags: ["Performance", "Mobile", "UX", "Optimization"],
-          challenge: "App performance degradation and high crash rates due to user growth were causing increased user churn.",
-          solution: "Performed performance testing across various devices and network environments, analyzed memory leaks and battery consumption patterns.",
-          result: "Reduced app loading time by 50% and crash rate to 0.1%. User satisfaction improved to 95%.",
-          technologies: ["Xcode Instruments", "Android Profiler", "Firebase Performance", "New Relic"],
-        },
-        {
-          title: "API Security Enhancement Project", period: "2023.01 - 2023.04", type: "Security", role: "Security QA Specialist", team: "2 QA, 3 Security Team, 4 Developers",
-          achievements: ["15 vulnerabilities found", "100% security coverage", "Zero security breaches", "Security guidelines established"], tags: ["Security", "API", "Penetration Testing", "OWASP"],
-          challenge: "Increasing external API integrations raised security threats, requiring systematic security testing.",
-          solution: "Created security test checklist based on OWASP API Top 10 and introduced automated security scanning tools.",
-          result: "Discovered and fixed 15 security vulnerabilities proactively, with zero security incidents during service operation.",
-          technologies: ["OWASP ZAP", "Burp Suite", "Nessus", "Postman"],
-        },
-      ],
-      processProjects: [
-        {
-          title: "Test Automation Framework Development", period: "2021.01 - 2021.06", type: "Automation", role: "Automation Engineer", team: "2 QA, 2 DevOps",
-          achievements: ["70% test time reduction", "95% coverage", "CI/CD integration", "Improved maintainability"], tags: ["Automation", "Framework", "CI/CD", "Efficiency"],
-          challenge: "Long test cycles due to manual testing and repetitive regression testing were slowing down development speed.",
-          solution: "Designed scalable automation framework using Page Object Model pattern.",
-          result: "Reduced test execution time by 70% and improved test coverage to 95%.",
-          technologies: ["Selenium", "Python", "Jenkins", "Docker", "Allure"],
-        },
-        {
-          title: "QA Process Standardization", period: "2023.03 - 2023.09", type: "Process", role: "QA Process Lead", team: "5 QA, 2 PM, 3 Dev Team Leaders",
-          achievements: ["40% team efficiency improvement", "Documentation completed", "Cross-team adoption", "Training program operation"], tags: ["Process", "Standardization", "Efficiency", "Collaboration"],
-          challenge: "Different QA processes across teams lacked consistency and made onboarding new team members difficult.",
-          solution: "Redesigned QA processes for agile environments and introduced test case management tools.",
-          result: "Improved team efficiency by 40% and reduced new team member onboarding time by 50%.",
-          technologies: ["Jira", "TestRail", "Confluence", "Slack"],
-        },
-        {
-          title: "Quality Culture Innovation Initiative", period: "2024.01 - Present", type: "Culture", role: "Quality Culture Lead", team: "8 QA Total, 25 Developers Total",
-          achievements: ["Training program launch", "Quality metrics dashboard", "Enhanced cross-team collaboration", "Quality mindset spread"], tags: ["Culture", "Training", "Leadership", "Innovation"],
-          challenge: "Silos between development and QA teams and different perceptions of quality were reducing collaboration efficiency.",
-          solution: "Planned company-wide quality education program and created test writing guides for developers.",
-          result: "Significantly improved development team's quality awareness, moving bug discovery earlier to development phase.",
-          technologies: ["Grafana", "Elasticsearch", "Slack", "Notion"],
-        },
-      ],
-      achievements: {
-        metrics: [
-          { label: "Project Success Rate", value: "99.7%", description: "Successfully completed all 15 projects" },
-          { label: "Bug Detection Rate", value: "95%", description: "95%+ bugs found before production deployment" },
-          { label: "Test Automation Rate", value: "85%", description: "85% of repetitive tests converted to automation" },
-          { label: "Team Efficiency Improvement", value: "40%", description: "Team productivity improvement through process enhancement" },
-        ],
-        certifications: [
-          { name: "ISTQB Foundation Level", year: "2021", issuer: "ISTQB" },
-          { name: "AWS Certified Cloud Practitioner", year: "2022", issuer: "Amazon" },
-          { name: "Certified Ethical Hacker (CEH)", year: "2023", issuer: "EC-Council" },
-        ],
-        awards: [
-          { title: "QA Engineer of the Year", year: "2023", organization: "Company Internal" },
-          { title: "Process Innovation Award", year: "2023", organization: "Company Internal" },
-          { title: "Customer Satisfaction Contribution Award", year: "2024", organization: "Company Internal" },
-        ],
-      },
-      vision: {
-        philosophy: { quote: "Quality is never an accident; it is always the result of intention", author: "- Sophia Ko", description: "Through 5 years of experience, I've learned that true quality isn't created by testing at the end, but by designing and developing with quality in mind from the beginning." },
-        approach: [
-          { title: "User-Centric Thinking", description: "Prioritizing user experience over technical perfection", impact: "95% user satisfaction achieved" },
-          { title: "Data-Driven Decisions", description: "Making decisions based on clear data, not intuition", impact: "60% faster decision making" },
-          { title: "Preventive Quality Management", description: "Preventing problems rather than finding them", impact: "80% reduction in production bugs" },
-          { title: "Continuous Improvement", description: "No process is perfect, it must keep evolving", impact: "40% improvement in team efficiency" },
-        ],
-        goals: [
-          { timeline: "2025", title: "AI-Powered QA Tool Development", description: "Develop automated test case generation tools using machine learning to maximize testing efficiency.", expectedImpact: "70% reduction in test case writing time" },
-          { timeline: "2026", title: "QA Education Platform", description: "Create systematic education platform for junior QA engineers to raise industry-wide quality standards.", expectedImpact: "Overall improvement in industry QA capabilities" },
-          { timeline: "2027+", title: "Quality-First Culture Evangelism", description: "Provide consulting to create organizations that prioritize quality at the corporate culture level.", expectedImpact: "Spread quality-first corporate culture" },
-        ],
-        contacts: [
-          { label: "Email", value: "sophia.ko@email.com", icon: "M" },
-          { label: "Phone", value: "+82 10-1234-5678", icon: "P" },
-          { label: "GitHub", value: "github.com/sophia-ko", icon: "G" },
-          { label: "LinkedIn", value: "linkedin.com/in/sophia-ko", icon: "L" },
-        ],
-        ctaTitle: "Ready to Build Quality Together?",
-        ctaDescription: "Let's create products that users love and developers are proud of.",
-      },
-    },
+  const getIcon = (iconName: string) => {
+    const icons: Record<string, JSX.Element> = {
+      email: (
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+      linkedin: (
+        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+        </svg>
+      ),
+      github: (
+        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      )
+    }
+    return icons[iconName] || null
   }
 
-  const currentContent = content[language]
 
-  const SectionHeader = ({ title, editKey }: { title: string; editKey?: string }) => (
+  const handleAIImprove = async (key: string, currentValue: string, type: 'text' | 'quote') => {
+    if (!currentValue.trim()) {
+      setAiError(language === "ko" ? "먼저 내용을 입력하세요" : "Please enter content first")
+      return
+    }
+
+    setAiLoading(key)
+    setAiError("")
+
+    try {
+      // 현재 언어로 개선
+      const response = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Improve this ${type} for a QA engineer portfolio`,
+          type: 'blog',
+          language,
+          formData: {
+            title: type === 'quote' ? 'Vision Quote' : 'Vision Content',
+            content: currentValue
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'AI 생성 실패')
+      }
+
+      const data = await response.json()
+      const improvedContent = data.content || data.text
+
+      if (improvedContent) {
+        // 현재 언어로 저장
+        save(key)(improvedContent)
+
+        // 반대 언어로도 번역해서 저장
+        const targetLang = language === 'ko' ? 'en' : 'ko'
+        const translateResponse = await fetch('/api/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: `Translate this ${type} to ${targetLang === 'ko' ? 'Korean' : 'English'}`,
+            type: 'blog',
+            language: targetLang,
+            formData: {
+              title: type === 'quote' ? 'Vision Quote' : 'Vision Content',
+              content: improvedContent
+            }
+          }),
+        })
+
+        if (translateResponse.ok) {
+          const translateData = await translateResponse.json()
+          const translatedContent = translateData.content || translateData.text
+          if (translatedContent) {
+            // 반대 언어로도 저장
+            setOverrideSync(`exp.${targetLang}.${key}`, translatedContent)
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("AI 개선 오류:", error)
+      setAiError(error.message || (language === "ko" ? "AI 생성 중 오류가 발생했습니다" : "Error generating with AI"))
+    } finally {
+      setAiLoading(null)
+    }
+  }
+
+  const handleSaveItem = async (data: Record<string, any>) => {
+    console.log("=== handleSaveItem 시작 ===")
+    console.log("modalType:", modalType)
+    console.log("language:", language)
+    console.log("data:", data)
+    console.log("editingItem:", editingItem)
+
+    try {
+      // Convert tools string to array for skill type
+      if (modalType === "skill" && typeof data.tools === "string") {
+        data.tools = data.tools.split(",").map((t: string) => t.trim()).filter((t: string) => t)
+      }
+
+      let result
+      if (editingItem) {
+        console.log("수정 모드: updateExperienceData 호출")
+        result = await updateExperienceData(editingItem.id, data)
+        console.log("updateExperienceData 결과:", result)
+      } else {
+        console.log("추가 모드: addExperienceData 호출")
+        result = await addExperienceData(language, modalType, data)
+        console.log("addExperienceData 결과:", result)
+      }
+
+      console.log("loadAllExperienceData 호출 시작")
+      await loadAllExperienceData(language)
+      console.log("loadAllExperienceData 완료")
+
+      setShowAddModal(false)
+      setEditingItem(null)
+      console.log("=== handleSaveItem 완료 ===")
+    } catch (error) {
+      console.error("Error saving item:", error)
+    }
+  }
+
+  const handleDeleteItem = async (id: string) => {
+    if (!confirm(language === "ko" ? "정말 삭제하시겠습니까?" : "Are you sure you want to delete?")) {
+      return
+    }
+    try {
+      await deleteExperienceData(id)
+      await loadAllExperienceData(language)
+    } catch (error) {
+      console.error("Error deleting item:", error)
+    }
+  }
+
+  const handleEditItem = (item: ExperienceData, type: string) => {
+    setEditingItem(item)
+    setModalType(type)
+    setShowAddModal(true)
+  }
+
+  const handleAddProject = (company: string) => {
+    setSelectedCompany(company)
+    setShowProjectModal(true)
+  }
+
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project)
+    setSelectedCompany(project.details?.company || "")
+    setShowProjectModal(true)
+  }
+
+  const handleSaveProject = async (projectData: any) => {
+    try {
+      console.log("=== handleSaveProject 시작 ===")
+      console.log("projectData:", projectData)
+      console.log("editingProject:", editingProject)
+
+      if (editingProject) {
+        // Update existing project
+        await updateProject(editingProject.id, {
+          title: projectData.title,
+          overview: projectData.overview,
+          background: projectData.background,
+          tech_stack: projectData.tech_stack,
+          details: {
+            ...projectData.details,
+            achievements: projectData.achievements
+          }
+        })
+        console.log("프로젝트 수정 완료")
+      } else {
+        // Add new project
+        const projectId = `proj-${Date.now()}`
+        await addProject(language, {
+          project_id: projectId,
+          title: projectData.title,
+          category: "qa",
+          overview: projectData.overview,
+          background: projectData.background,
+          tech_stack: projectData.tech_stack,
+          details: {
+            ...projectData.details,
+            achievements: projectData.achievements
+          }
+        })
+        console.log("프로젝트 추가 완료")
+      }
+
+      // Reload projects
+      const updatedProjects = await loadProjects(language)
+      console.log("리로드된 프로젝트:", updatedProjects)
+      setProjects(updatedProjects)
+
+      setShowProjectModal(false)
+      setSelectedCompany("")
+      setEditingProject(null)
+
+      console.log("=== handleSaveProject 완료 ===")
+    } catch (error) {
+      console.error("Error saving project:", error)
+      alert(language === "ko" ? "프로젝트 저장 실패" : "Failed to save project")
+    }
+  }
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!confirm(language === "ko" ? "정말 이 프로젝트를 삭제하시겠습니까?" : "Are you sure you want to delete this project?")) {
+      return
+    }
+
+    try {
+      console.log("=== handleDeleteProject 시작 ===")
+      console.log("projectId:", projectId)
+
+      await deleteProject(projectId)
+
+      console.log("프로젝트 삭제 완료, 리로드 시작")
+      // Reload projects
+      const updatedProjects = await loadProjects(language)
+      console.log("리로드된 프로젝트:", updatedProjects)
+      setProjects(updatedProjects)
+
+      console.log("=== handleDeleteProject 완료 ===")
+    } catch (error) {
+      console.error("Error deleting project:", error)
+      alert(language === "ko" ? "프로젝트 삭제 실패" : "Failed to delete project")
+    }
+  }
+
+  const c = (key: string, fallback: string) => getContent(`exp.${language}.${key}`, fallback)
+  const save = (key: string) => (val: string) => { setOverrideSync(`exp.${language}.${key}`, val); forceUpdate(n => n + 1) }
+
+  const tabs = {
+    ko: { overview: "개요", projects: "프로젝트", vision: "비전" },
+    en: { overview: "Overview", projects: "Projects", vision: "Vision" }
+  }
+
+  // Group projects by category
+  const qaProjects = projects.filter(p => p.category === 'project' || p.category === 'qa')
+  const methodologyProjects = projects.filter(p => p.category === 'methodology')
+  const aiLearningProjects = projects.filter(p => p.category === 'ai_learning')
+  const skillProjects = projects.filter(p => p.category === 'skill')
+  const visionProjects = projects.filter(p => p.category === 'vision')
+
+  console.log("=== Projects Filter Debug ===")
+  console.log("Total projects:", projects.length)
+  console.log("QA projects:", qaProjects.length)
+
+  // Hardcoded content structure (to be made dynamic later)
+  const overview = {
+    summary: language === "ko"
+      ? "5년간 다양한 도메인에서 QA 업무를 수행하며 품질 보증의 전 영역을 경험했습니다. 단순한 테스트 실행을 넘어 품질 문화 구축과 프로세스 개선에 집중하고 있습니다."
+      : "Over 5 years of QA experience across various domains, covering all aspects of quality assurance. Focus on building quality culture and process improvement beyond simple test execution.",
+    highlights: [
+      {
+        title: language === "ko" ? "테스트 자동화 전문성" : "Test Automation Expertise",
+        description: language === "ko" ? "Selenium, Cypress, Appium을 활용한 E2E 자동화 구축" : "E2E automation using Selenium, Cypress, and Appium",
+        impact: language === "ko" ? "테스트 시간 70% 단축" : "70% reduction in test time"
+      },
+      {
+        title: language === "ko" ? "크로스 플랫폼 경험" : "Cross-Platform Experience",
+        description: language === "ko" ? "iOS, Android, Web 플랫폼 전반의 테스트 경험" : "Testing experience across iOS, Android, and Web platforms",
+        impact: language === "ko" ? "8개 플랫폼 동시 지원" : "Supporting 8 platforms simultaneously"
+      },
+      {
+        title: language === "ko" ? "보안 테스트 전문성" : "Security Testing Expertise",
+        description: language === "ko" ? "OWASP 기반 보안 취약점 검증 및 침투 테스트" : "OWASP-based security vulnerability verification and penetration testing",
+        impact: language === "ko" ? "보안 이슈 0건 달성" : "Zero security issues achieved"
+      },
+      {
+        title: language === "ko" ? "성능 최적화" : "Performance Optimization",
+        description: language === "ko" ? "부하 테스트 및 성능 병목 지점 분석" : "Load testing and performance bottleneck analysis",
+        impact: language === "ko" ? "응답 시간 50% 개선" : "50% improvement in response time"
+      }
+    ],
+    timeline: [
+      { year: "2020", role: language === "ko" ? "Junior QA Engineer" : "Junior QA Engineer", company: language === "ko" ? "스타트업 A" : "Startup A", focus: language === "ko" ? "모바일 앱 테스팅" : "Mobile App Testing" },
+      { year: "2021", role: language === "ko" ? "QA Engineer" : "QA Engineer", company: language === "ko" ? "스타트업 A" : "Startup A", focus: language === "ko" ? "테스트 자동화" : "Test Automation" },
+      { year: "2022", role: language === "ko" ? "Senior QA Engineer" : "Senior QA Engineer", company: language === "ko" ? "핀테크 B" : "Fintech B", focus: language === "ko" ? "결제 시스템 QA" : "Payment System QA" },
+      { year: "2023", role: language === "ko" ? "Senior QA Engineer" : "Senior QA Engineer", company: language === "ko" ? "핀테크 B" : "Fintech B", focus: language === "ko" ? "보안 & 성능 테스트" : "Security & Performance Testing" },
+      { year: "2024", role: language === "ko" ? "Lead QA Engineer" : "Lead QA Engineer", company: language === "ko" ? "테크 C" : "Tech C", focus: language === "ko" ? "QA 프로세스 혁신" : "QA Process Innovation" }
+    ],
+    metrics: [
+      { label: language === "ko" ? "프로젝트 성공률" : "Project Success Rate", value: "99.7%", description: language === "ko" ? "15개 프로젝트 중 모든 프로젝트 성공적 완료" : "All 15 projects successfully completed" },
+      { label: language === "ko" ? "버그 발견율" : "Bug Discovery Rate", value: "95%", description: language === "ko" ? "프로덕션 배포 전 95% 이상의 버그 사전 발견" : "95%+ bugs found before production" },
+      { label: language === "ko" ? "테스트 자동화율" : "Test Automation Rate", value: "85%", description: language === "ko" ? "반복 테스트의 85%를 자동화로 전환" : "85% of repetitive tests automated" },
+      { label: language === "ko" ? "팀 효율성 향상" : "Team Efficiency Improvement", value: "40%", description: language === "ko" ? "프로세스 개선을 통한 팀 생산성 향상" : "Productivity improved through process optimization" }
+    ],
+    skills: [
+      { category: language === "ko" ? "모바일 테스팅" : "Mobile Testing", tools: ["XCTest", "XCUITest", "TestFlight", "Espresso", "UI Automator", "Firebase Test Lab"] },
+      { category: language === "ko" ? "웹 테스팅" : "Web Testing", tools: ["Selenium", "Cypress", "Playwright", "Postman", "REST Assured", "Newman"] },
+      { category: language === "ko" ? "자동화 & DevOps" : "Automation & DevOps", tools: ["Python", "Java", "Jenkins", "GitHub Actions", "JMeter", "K6"] }
+    ],
+    certifications: [
+      { name: "ISTQB Foundation Level", year: "2021", issuer: "ISTQB" },
+      { name: "AWS Certified Cloud Practitioner", year: "2022", issuer: "Amazon" },
+      { name: "Certified Ethical Hacker (CEH)", year: "2023", issuer: "EC-Council" }
+    ]
+  }
+
+  const SectionHeader = ({ title, editKey, onAdd, addLabel }: { title: string; editKey?: string; onAdd?: () => void; addLabel?: string }) => (
     <div className="mb-8">
-      {editKey ? (
-        <EditableField value={c(editKey, title)} onSave={save(editKey)} as="h2" className="text-2xl font-semibold text-gray-900 mb-2" />
-      ) : (
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">{title}</h2>
-      )}
-      <div className="w-12 h-0.5 bg-blue-600 rounded-full"></div>
+      <div className="flex items-center justify-between">
+        <div>
+          {editKey ? (
+            <EditableField value={c(editKey, title)} onSave={save(editKey)} as="h2" className="text-2xl font-semibold text-gray-900 mb-2" />
+          ) : (
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">{title}</h2>
+          )}
+          <div className="w-12 h-0.5 bg-blue-600 rounded-full"></div>
+        </div>
+        {isAdmin && onAdd && (
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            {addLabel || "+"}
+          </button>
+        )}
+      </div>
     </div>
   )
+
+  const timelineColors = [
+    { bg: "bg-blue-600", light: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
+    { bg: "bg-teal-600", light: "bg-teal-50", border: "border-teal-200", text: "text-teal-700" },
+    { bg: "bg-amber-600", light: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  ]
+
+  // Use Supabase data if available, otherwise fallback to hardcoded
+  const actualTimeline = timelineData.length > 0
+    ? timelineData.map(t => t.content)
+    : overview.timeline
+
+  console.log("=== Timeline Data Debug ===")
+  console.log("timelineData:", timelineData)
+  console.log("actualTimeline:", actualTimeline)
+
+  const companies = [...new Set(actualTimeline.map(t => t.company))]
+  console.log("companies:", companies)
+
+  const companyColorMap: Record<string, number> = {}
+  companies.forEach((co, i) => { companyColorMap[co] = i % timelineColors.length })
+
+  // Group projects by company
+  const grouped: Record<string, Project[]> = {}
+  companies.forEach(company => { grouped[company] = [] })
+
+  console.log("=== Grouping Projects ===")
+  console.log("qaProjects:", qaProjects)
+
+  qaProjects.forEach(p => {
+    // First try to use company from details
+    let key = p.details?.company
+
+    // If no company in details, try to match by year
+    if (!key) {
+      const year = p.details?.period?.toString().slice(0, 4) || "2024"
+      const matchedCompany = actualTimeline.find(t => t.year === year)?.company
+      key = matchedCompany || companies[companies.length - 1]
+    }
+
+    console.log(`Project "${p.title}" -> Company: "${key}"`)
+
+    if (!grouped[key]) {
+      console.warn(`Company "${key}" not found in companies list, creating new group`)
+      grouped[key] = []
+    }
+    grouped[key].push(p)
+  })
+
+  console.log("grouped:", grouped)
+  console.log("=== Grouping Complete ===")
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 ${isAdmin ? "pt-10" : ""}`}>
@@ -295,7 +566,7 @@ export default function ExperiencePage() {
           <div className="flex items-center justify-between h-16">
             <button onClick={() => (window.location.href = "/")} className="flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-              {currentContent.backButton}
+              {language === "ko" ? "검색으로 돌아가기" : "Back to Search"}
             </button>
             <div className="flex items-center space-x-8">
               <div className="flex space-x-8">
@@ -304,6 +575,18 @@ export default function ExperiencePage() {
                 <button onClick={() => (window.location.href = "/blog")} className="text-gray-600 hover:text-gray-900 pb-4 transition-colors">Blog</button>
               </div>
               <div className="flex items-center space-x-3">
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowSettingsModal(true)}
+                    className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
+                    title={language === "ko" ? "관리자 설정" : "Admin Settings"}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                )}
                 <span className={`text-sm transition-colors ${language === "ko" ? "text-gray-900 font-medium" : "text-gray-500"}`}>한국어</span>
                 <button
                   onClick={() => handleLanguageChange(language === "ko" ? "en" : "ko")}
@@ -321,14 +604,19 @@ export default function ExperiencePage() {
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <EditableField value={c("title", currentContent.title)} onSave={save("title")} as="h1" className="text-4xl font-light text-gray-900 mb-4" />
-          <EditableField value={c("subtitle", currentContent.subtitle)} onSave={save("subtitle")} as="p" className="text-gray-600 text-lg" />
+          <EditableField value={c("title", "Experience")} onSave={save("title")} as="h1" className="text-4xl font-light text-gray-900 mb-4" />
+          <EditableField
+            value={c("subtitle", language === "ko" ? "5년간 제품에 품질을 구축해온 경험" : "5 years of building quality into products")}
+            onSave={save("subtitle")}
+            as="p"
+            className="text-gray-600 text-lg"
+          />
         </div>
 
         {/* Tab Navigation */}
         <div className="flex justify-center mb-12">
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-2 border border-gray-200/50">
-            {Object.entries(currentContent.tabs).map(([key, label]) => (
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-2 border border-gray-200/50 shadow-sm">
+            {Object.entries(tabs[language]).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key as typeof activeTab)}
@@ -340,305 +628,808 @@ export default function ExperiencePage() {
           </div>
         </div>
 
-        {/* ===== OVERVIEW TAB ===== */}
-        {activeTab === "overview" && (
-          <div className="space-y-12">
-            {/* Summary - top */}
-            <div className="relative overflow-hidden">
-              <div className="bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-3xl p-8 relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/30 rounded-full -translate-y-8 translate-x-8"></div>
-                <div className="relative z-10">
-                  <EditableField value={c("summaryTitle", "Summary")} onSave={save("summaryTitle")} as="h2" className="text-2xl font-light text-gray-900 mb-6" />
-                  <EditableField value={c("summary", currentContent.overview.summary)} onSave={save("summary")} as="p" className="text-gray-800 text-lg leading-relaxed" multiline />
-                </div>
-              </div>
-            </div>
-
-            {/* Key Highlights */}
-            <div>
-              <SectionHeader title={language === "ko" ? "핵심 강점" : "Key Highlights"} editKey="highlightsTitle" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {currentContent.overview.highlights.map((highlight, index) => (
-                  <div key={index} className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
-                    <EditableField value={c(`hl_${index}_t`, highlight.title)} onSave={save(`hl_${index}_t`)} as="h3" className="font-semibold text-gray-900 text-lg mb-3" />
-                    <EditableField value={c(`hl_${index}_d`, highlight.description)} onSave={save(`hl_${index}_d`)} as="p" className="text-gray-700 mb-4" />
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                      <EditableField value={c(`hl_${index}_i`, highlight.impact)} onSave={save(`hl_${index}_i`)} as="span" className="text-green-700 font-medium text-sm" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Key Performance Metrics */}
-            <div>
-              <SectionHeader title={language === "ko" ? "핵심 성과" : "Key Metrics"} editKey="metricsTitle" />
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {currentContent.achievements.metrics.map((metric, index) => (
-                  <div key={index} className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-5 text-center hover:shadow-md hover:-translate-y-1 transition-all duration-300">
-                    <EditableField value={c(`mt_${index}_v`, metric.value)} onSave={save(`mt_${index}_v`)} as="div" className="text-2xl font-light text-blue-600 mb-1" />
-                    <EditableField value={c(`mt_${index}_l`, metric.label)} onSave={save(`mt_${index}_l`)} as="div" className="font-semibold text-gray-900 text-sm mb-1" />
-                    <EditableField value={c(`mt_${index}_d`, metric.description)} onSave={save(`mt_${index}_d`)} as="div" className="text-xs text-gray-500" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Tech Stack & Certifications - side by side */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <SectionHeader title={language === "ko" ? "기술 스택" : "Tech Stack"} editKey="techTitle" />
-                <div className="space-y-3">
-                  {currentContent.skills.map((skillGroup, gi) => (
-                    <div key={gi} className="bg-white/60 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4">
-                      <EditableField value={c(`skCat_${gi}`, skillGroup.category)} onSave={save(`skCat_${gi}`)} as="h3" className="font-semibold text-gray-900 mb-2 text-sm" />
-                      <div className="flex flex-wrap gap-1.5">
-                        {skillGroup.tools.map((tool, ti) => (
-                          <span key={ti} className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium border border-blue-100">{tool}</span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <SectionHeader title={language === "ko" ? "전문 자격증" : "Certifications"} editKey="certsTitle" />
-                <div className="space-y-3">
-                  {currentContent.achievements.certifications.map((cert, index) => (
-                    <div key={index} className="bg-white/60 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4 flex items-center justify-between">
-                      <EditableField value={c(`cert_${index}_n`, cert.name)} onSave={save(`cert_${index}_n`)} as="span" className="font-medium text-gray-900 text-sm" />
-                      <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0 ml-3">
-                        <EditableField value={c(`cert_${index}_i`, cert.issuer)} onSave={save(`cert_${index}_i`)} as="span" className="text-gray-500" />
-                        <span>{"/"}</span>
-                        <EditableField value={c(`cert_${index}_y`, cert.year)} onSave={save(`cert_${index}_y`)} as="span" className="text-gray-500" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {/* Tab Content */}
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="text-gray-500">{language === "ko" ? "로딩 중..." : "Loading..."}</div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* ===== OVERVIEW TAB ===== */}
+            {activeTab === "overview" && (
+              <div className="space-y-12">
+                {/* Summary */}
+                <div className="relative overflow-hidden">
+                  <div className="bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-3xl p-8 relative">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/30 rounded-full -translate-y-8 translate-x-8"></div>
+                    {isAdmin && (
+                      <button
+                        onClick={() => handleAIImprove("summary", c("summary", overview.summary), 'text')}
+                        disabled={aiLoading === "summary"}
+                        className="absolute top-4 right-4 z-20 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        {aiLoading === "summary" ? (
+                          <>
+                            <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            {language === "ko" ? "개선 중..." : "Improving..."}
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            {language === "ko" ? "AI 개선" : "AI Improve"}
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <div className="relative z-10">
+                      <EditableField value={c("summaryTitle", language === "ko" ? "요약" : "Summary")} onSave={save("summaryTitle")} as="h2" className="text-2xl font-light text-gray-900 mb-6" />
+                      <EditableField value={c("summary", overview.summary)} onSave={save("summary")} as="p" className="text-gray-800 text-lg leading-relaxed" multiline />
+                    </div>
+                  </div>
+                </div>
 
-        {/* ===== PROJECTS TAB ===== */}
-        {activeTab === "projects" && (() => {
-          const timelineColors = [
-            { bg: "bg-blue-600", light: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
-            { bg: "bg-teal-600", light: "bg-teal-50", border: "border-teal-200", text: "text-teal-700" },
-            { bg: "bg-amber-600", light: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
-            { bg: "bg-rose-600", light: "bg-rose-50", border: "border-rose-200", text: "text-rose-700" },
-            { bg: "bg-violet-600", light: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
-          ]
-          const companies = [...new Set(currentContent.overview.timeline.map(t => t.company))]
-          if (expandedCompany === null && companies.length > 0) {
-            setTimeout(() => setExpandedCompany(companies[companies.length - 1]), 0)
-          }
-          const companyColorMap: Record<string, number> = {}
-          companies.forEach((co, i) => { companyColorMap[co] = i % timelineColors.length })
-
-          const allProjects = [
-            ...currentContent.qaProjects.map((p, i) => ({ ...p, _key: `qa_${i}`, _idx: i, _section: "qa" as const })),
-            ...currentContent.processProjects.map((p, i) => ({ ...p, _key: `pp_${i}`, _idx: i, _section: "process" as const })),
-          ]
-
-          const grouped: Record<string, typeof allProjects> = {}
-          currentContent.overview.timeline.forEach(t => {
-            if (!grouped[t.company]) grouped[t.company] = []
-          })
-          allProjects.forEach(p => {
-            const year = p.period.slice(0, 4)
-            const matchedCompany = currentContent.overview.timeline.find(t => t.year === year)?.company
-            const key = matchedCompany || companies[companies.length - 1]
-            if (!grouped[key]) grouped[key] = []
-            grouped[key].push(p)
-          })
-
-          return (
-            <div className="space-y-12">
-              {/* Career Timeline */}
-              <div>
-                <SectionHeader title={language === "ko" ? "커리어 타임라인" : "Career Timeline"} editKey="timelineTitle" />
-                <div className="relative">
-                  <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gray-200 z-0"></div>
-                  <div className="flex flex-wrap gap-3 relative z-10">
-                    {currentContent.overview.timeline.map((item, index) => {
-                      const colorIdx = companyColorMap[item.company] ?? 0
-                      const color = timelineColors[colorIdx]
+                {/* Key Highlights */}
+                <div>
+                  <SectionHeader
+                    title={language === "ko" ? "핵심 강점" : "Key Highlights"}
+                    editKey="highlightsTitle"
+                    onAdd={() => { setModalType("highlight"); setEditingItem(null); setShowAddModal(true); }}
+                    addLabel={language === "ko" ? "+ 강점 추가" : "+ Add Highlight"}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {(highlightsData.length > 0 ? highlightsData : overview.highlights.map((h, i) => ({ id: `temp-${i}`, content: h }))).map((item, index) => {
+                      const content = item.content || item
                       return (
-                        <div key={index} className={`flex-1 min-w-[150px] ${color.light} rounded-2xl shadow-sm border ${color.border} p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-300`}>
-                          <div className={`inline-block ${color.bg} text-white text-xs font-bold px-2.5 py-1 rounded-lg mb-2`}>
-                            <EditableField value={c(`tl_${index}_y`, item.year)} onSave={save(`tl_${index}_y`)} as="span" className="text-white font-bold text-xs" />
+                        <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                          {isAdmin && item.id && !item.id.startsWith('temp-') && (
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEditItem(item as ExperienceData, "highlight")}
+                                className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+                          <h3 className="font-semibold text-gray-900 text-lg mb-3">{content.title}</h3>
+                          <p className="text-gray-700 mb-4">{content.description}</p>
+                          <div className="flex items-center">
+                            <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                            <span className="text-green-700 font-medium text-sm">{content.impact}</span>
                           </div>
-                          <EditableField value={c(`tl_${index}_r`, item.role)} onSave={save(`tl_${index}_r`)} as="p" className="font-medium text-gray-900 text-sm mb-0.5" />
-                          <EditableField value={c(`tl_${index}_c`, item.company)} onSave={save(`tl_${index}_c`)} as="p" className={`${color.text} text-xs font-medium mb-0.5`} />
-                          <EditableField value={c(`tl_${index}_f`, item.focus)} onSave={save(`tl_${index}_f`)} as="p" className="text-gray-600 text-xs" />
                         </div>
                       )
                     })}
                   </div>
                 </div>
-              </div>
 
-              {/* Projects grouped by company */}
-              {companies.map((company, ci) => {
-                const colorIdx = companyColorMap[company]
-                const color = timelineColors[colorIdx]
-                const companyProjects = grouped[company] || []
-                if (companyProjects.length === 0) return null
-                const companyYears = currentContent.overview.timeline.filter(t => t.company === company).map(t => t.year)
-                const yearRange = companyYears.length > 1 ? `${companyYears[0]} - ${companyYears[companyYears.length - 1]}` : companyYears[0]
-
-                return (
-                  <div key={ci}>
-                    <button
-                      onClick={() => setExpandedCompany(expandedCompany === company ? null : company)}
-                      className={`w-full flex items-center justify-between mb-6 p-4 rounded-2xl ${color.light} border ${color.border} hover:shadow-md transition-all duration-200 cursor-pointer`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-3 h-3 ${color.bg} rounded-full`}></div>
-                        <div className="text-left">
-                          <h3 className="font-semibold text-gray-900 text-lg">{company}</h3>
-                          <p className="text-gray-500 text-sm">{yearRange} / {companyProjects.length} {language === "ko" ? "개 프로젝트" : "projects"}</p>
-                        </div>
-                      </div>
-                      <svg className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${expandedCompany === company ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-
-                    {expandedCompany === company && (
-                      <div className={`space-y-6 ml-4 pl-4 border-l-2 ${["border-blue-200","border-teal-200","border-amber-200","border-rose-200","border-violet-200"][colorIdx]}`}>
-                        {companyProjects.map((project) => {
-                          const projId = project._section === "qa" ? project._idx : project._idx + 100
-                          const prefix = project._section === "qa" ? "qp" : "pp"
-                          return (
-                            <div key={project._key} className="space-y-3">
-                              <div
-                                className={`bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer ${selectedProject === projId ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
-                                onClick={() => setSelectedProject(selectedProject === projId ? null : projId)}
+                {/* Key Performance Metrics */}
+                <div>
+                  <SectionHeader
+                    title={language === "ko" ? "핵심 성과" : "Key Metrics"}
+                    editKey="metricsTitle"
+                    onAdd={() => { setModalType("metric"); setEditingItem(null); setShowAddModal(true); }}
+                    addLabel={language === "ko" ? "+ 성과 추가" : "+ Add Metric"}
+                  />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {(metricsData.length > 0 ? metricsData : overview.metrics.map((m, i) => ({ id: `temp-${i}`, content: m }))).map((item, index) => {
+                      const content = item.content || item
+                      return (
+                        <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-5 text-center hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                          {isAdmin && item.id && !item.id.startsWith('temp-') && (
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEditItem(item as ExperienceData, "metric")}
+                                className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                               >
-                                <div className="p-6">
-                                  <div className="flex items-start justify-between mb-4">
-                                    <div>
-                                      <EditableField value={c(`${prefix}_${project._idx}_t`, project.title)} onSave={save(`${prefix}_${project._idx}_t`)} as="h3" className="text-xl font-semibold text-gray-900 mb-1" />
-                                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                                        <span>{project.period}</span><span>{"/"}</span><span>{project.role}</span>
-                                      </div>
-                                    </div>
-                                    <span className={`${color.light} ${color.text} px-3 py-1 rounded-full text-xs font-medium border ${color.border}`}>{project.type}</span>
-                                  </div>
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                                    {project.achievements.map((a, i) => (<div key={i} className="text-center py-2 bg-gray-50/80 rounded-xl"><div className="text-sm font-semibold text-gray-900">{a}</div></div>))}
-                                  </div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {project.tags.map((tag, i) => (<span key={i} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">{tag}</span>))}
-                                  </div>
-                                </div>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+                          <div className="text-2xl font-light text-blue-600 mb-1">{content.value}</div>
+                          <div className="font-semibold text-gray-900 text-sm mb-1">{content.label}</div>
+                          <div className="text-xs text-gray-500">{content.description}</div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Tech Stack & Certifications */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <SectionHeader
+                      title={language === "ko" ? "기술 스택" : "Tech Stack"}
+                      editKey="techTitle"
+                      onAdd={() => { setModalType("skill"); setEditingItem(null); setShowAddModal(true); }}
+                      addLabel={language === "ko" ? "+ 기술 추가" : "+ Add Skill"}
+                    />
+                    <div className="space-y-3">
+                      {(skillsData.length > 0 ? skillsData : overview.skills.map((s, i) => ({ id: `temp-${i}`, content: s }))).map((item, index) => {
+                        const content = item.content || item
+                        return (
+                          <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4">
+                            <h3 className="font-semibold text-gray-900 mb-2 text-sm">{content.category}</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(Array.isArray(content.tools) ? content.tools : content.tools?.split(',').map((t: string) => t.trim())).map((tool: string, ti: number) => (
+                                <span key={ti} className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium border border-blue-100">{tool}</span>
+                              ))}
+                            </div>
+                            {isAdmin && item.id && !item.id.startsWith('temp-') && (
+                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                <button
+                                  onClick={() => {
+                                    setEditingItem(item as ExperienceData)
+                                    setModalType("skill")
+                                    setShowAddModal(true)
+                                  }}
+                                  className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  className="p-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
                               </div>
-                              {selectedProject === projId && (
-                                <div className={`${color.light} rounded-2xl p-6 border ${color.border} shadow-sm`}>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div><h4 className="font-semibold text-gray-900 mb-2 text-sm">Challenge</h4><EditableField value={c(`${prefix}_${project._idx}_ch`, project.challenge)} onSave={save(`${prefix}_${project._idx}_ch`)} as="p" className="text-gray-700 text-sm leading-relaxed" multiline /></div>
-                                    <div><h4 className="font-semibold text-gray-900 mb-2 text-sm">Solution</h4><EditableField value={c(`${prefix}_${project._idx}_sl`, project.solution)} onSave={save(`${prefix}_${project._idx}_sl`)} as="p" className="text-gray-700 text-sm leading-relaxed" multiline /></div>
-                                    <div><h4 className="font-semibold text-gray-900 mb-2 text-sm">Result</h4><EditableField value={c(`${prefix}_${project._idx}_rs`, project.result)} onSave={save(`${prefix}_${project._idx}_rs`)} as="p" className="text-gray-700 text-sm leading-relaxed" multiline /></div>
-                                  </div>
-                                  <div className="mt-4 pt-4 border-t border-gray-200/50">
-                                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">Technologies</h4>
-                                    <div className="flex flex-wrap gap-1.5">{project.technologies.map((t, i) => (<span key={i} className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">{t}</span>))}</div>
-                                  </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <SectionHeader
+                      title={language === "ko" ? "전문 자격증" : "Certifications"}
+                      editKey="certsTitle"
+                      onAdd={() => { setModalType("certification"); setEditingItem(null); setShowAddModal(true); }}
+                      addLabel={language === "ko" ? "+ 자격증 추가" : "+ Add Cert"}
+                    />
+                    <div className="space-y-3">
+                      {(certificationsData.length > 0 ? certificationsData : overview.certifications.map((c, i) => ({ id: `temp-${i}`, content: c }))).map((item, index) => {
+                        const content = item.content || item
+                        return (
+                          <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4 flex items-center justify-between">
+                            <span className="font-medium text-gray-900 text-sm">{content.name}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 text-xs text-gray-500 flex-shrink-0 ml-3">
+                                <span className="text-gray-500">{content.issuer}</span>
+                                <span>{"/"}</span>
+                                <span className="text-gray-500">{content.year}</span>
+                              </div>
+                              {isAdmin && item.id && !item.id.startsWith('temp-') && (
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                  <button
+                                    onClick={() => handleEditItem(item as ExperienceData, "certification")}
+                                    className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteItem(item.id)}
+                                    className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
                                 </div>
                               )}
                             </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )
-        })()}
-
-
-
-        {/* ===== VISION TAB ===== */}
-        {activeTab === "vision" && (
-          <div className="space-y-16">
-            {/* Philosophy */}
-            <div className="bg-white rounded-3xl p-10 text-center shadow-sm border border-gray-200/50">
-              <EditableField value={vc("phQuote", currentContent.vision.philosophy.quote)} onSave={vsave("phQuote")} as="p" className="text-2xl font-light mb-4 italic text-gray-900" />
-              <EditableField value={vc("phAuthor", currentContent.vision.philosophy.author)} onSave={vsave("phAuthor")} as="p" className="text-gray-600 text-lg" />
-              <EditableField value={vc("phDesc", currentContent.vision.philosophy.description)} onSave={vsave("phDesc")} as="p" className="text-gray-700 mt-6 max-w-3xl mx-auto leading-relaxed" multiline />
-            </div>
-
-            {/* My Approach */}
-            <div>
-              <SectionHeader title={language === "ko" ? "나의 접근 방식" : "My Approach"} editKey="approachTitle" />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {currentContent.vision.approach.map((item, index) => (
-                  <div key={index} className="group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                    <div className="flex items-start mb-4">
-                      <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center mr-4 flex-shrink-0">
-                        <span className="text-white font-bold">{index + 1}</span>
-                      </div>
-                      <div className="flex-1">
-                        <EditableField value={vc(`ap_${index}_t`, item.title)} onSave={vsave(`ap_${index}_t`)} as="h3" className="font-semibold text-gray-900 text-lg mb-1" />
-                        <EditableField value={vc(`ap_${index}_d`, item.description)} onSave={vsave(`ap_${index}_d`)} as="p" className="text-gray-600 text-sm" />
-                      </div>
-                    </div>
-                    <div className="flex items-center pt-3 border-t border-gray-100">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                      <EditableField value={vc(`ap_${index}_i`, item.impact)} onSave={vsave(`ap_${index}_i`)} as="span" className="text-green-700 font-medium text-sm" />
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Future Goals */}
-            <div>
-              <SectionHeader title={language === "ko" ? "미래 목표" : "Future Goals"} editKey="goalsTitle" />
-              <div className="space-y-6">
-                {currentContent.vision.goals.map((goal, index) => (
-                  <div key={index} className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-start">
-                      <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center mr-6 flex-shrink-0 shadow-lg">
-                        <EditableField value={vc(`gl_${index}_tl`, goal.timeline)} onSave={vsave(`gl_${index}_tl`)} as="span" className="text-white font-light text-sm" />
+            {/* ===== PROJECTS TAB ===== */}
+            {activeTab === "projects" && (
+              <div className="space-y-12">
+                {/* Career Timeline */}
+                <div>
+                  <SectionHeader
+                    title={language === "ko" ? "커리어 타임라인" : "Career Timeline"}
+                    editKey="timelineTitle"
+                    onAdd={() => { setModalType("timeline"); setEditingItem(null); setShowAddModal(true); }}
+                    addLabel={language === "ko" ? "+ 년도 추가" : "+ Add Year"}
+                  />
+                  <div className="relative">
+                    <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gray-200 z-0"></div>
+                    <div className="flex flex-wrap gap-3 relative z-10">
+                      {(timelineData.length > 0 ? timelineData : overview.timeline.map((t, i) => ({ id: `temp-${i}`, content: t }))).map((item, index) => {
+                        const content = item.content || item
+                        const colorIdx = companyColorMap[content.company] ?? 0
+                        const color = timelineColors[colorIdx]
+                        return (
+                          <div key={item.id || index} className={`relative group flex-1 min-w-[150px] ${color.light} rounded-2xl shadow-sm border ${color.border} p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-300`}>
+                            {isAdmin && item.id && !item.id.startsWith('temp-') && (
+                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => handleEditItem(item as ExperienceData, "timeline")}
+                                  className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+                            <div className={`inline-block ${color.bg} text-white text-xs font-bold px-2.5 py-1 rounded-lg mb-2`}>
+                              {content.year}
+                            </div>
+                            <p className="font-medium text-gray-900 text-sm mb-0.5">{content.role}</p>
+                            <p className={`${color.text} text-xs font-medium mb-0.5`}>{content.company}</p>
+                            <p className="text-gray-600 text-xs">{content.focus}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Projects grouped by company */}
+                {companies.map((company, ci) => {
+                  const colorIdx = companyColorMap[company]
+                  const color = timelineColors[colorIdx]
+                  const companyProjects = grouped[company] || []
+                  const companyYears = actualTimeline.filter(t => t.company === company).map(t => t.year)
+                  const isExpanded = expandedCompany === company
+
+                  return (
+                    <div key={company}>
+                      <button
+                        onClick={() => setExpandedCompany(isExpanded ? null : company)}
+                        className={`w-full flex items-center justify-between mb-6 p-4 rounded-2xl ${color.light} border ${color.border} hover:shadow-md transition-all duration-200 cursor-pointer`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-3 h-3 ${color.bg} rounded-full`}></div>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-gray-900 text-xl">{company}</h3>
+                            <p className="text-gray-500 text-sm">
+                              {companyYears.length > 0 && `${companyYears[0]} - ${companyYears[companyYears.length - 1]} • `}{companyProjects.length} {language === "ko" ? "개 프로젝트" : "projects"}
+                            </p>
+                          </div>
+                        </div>
+                        <svg className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {isExpanded && (
+                        <div className={`space-y-6 ml-4 pl-4 border-l-2 ${color.border} mb-8`}>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleAddProject(company)}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/60 backdrop-blur-sm border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:bg-white hover:border-blue-400 hover:text-blue-600 transition-all"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              <span className="font-medium">{language === "ko" ? "+ 프로젝트 추가" : "+ Add Project"}</span>
+                            </button>
+                          )}
+                          {companyProjects.map((project) => (
+                            <div key={project.id} className="space-y-3">
+                              <div
+                                className={`relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer ${selectedProject === parseInt(project.id) ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
+                                onClick={() => setSelectedProject(selectedProject === parseInt(project.id) ? null : parseInt(project.id))}
+                              >
+                                {isAdmin && (
+                                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleEditProject(project)
+                                      }}
+                                      className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteProject(project.id)
+                                      }}
+                                      className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="p-6">
+                                  <div className="flex items-start justify-between mb-4">
+                                    <div className="flex-1">
+                                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h4>
+                                      <p className="text-gray-700 text-sm mb-4">{project.overview}</p>
+                                    </div>
+                                    <span className={`${color.light} ${color.text} px-3 py-1 rounded-full text-xs font-medium border ${color.border} ml-4 whitespace-nowrap`}>
+                                      {project.details?.type || "Project"}
+                                    </span>
+                                  </div>
+
+                                  {project.tech_stack && project.tech_stack.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {project.tech_stack.map((tech, i) => (
+                                        <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">
+                                          {tech}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {selectedProject === parseInt(project.id) && (
+                                <div className={`${color.light} rounded-2xl p-6 border ${color.border} shadow-sm`}>
+                                  {project.background && (
+                                    <div className="mb-6">
+                                      <h5 className="font-semibold text-gray-900 mb-2 text-sm">{language === "ko" ? "배경" : "Background"}</h5>
+                                      <p className="text-gray-700 text-sm leading-relaxed">{project.background}</p>
+                                    </div>
+                                  )}
+
+                                  {project.details && Object.keys(project.details).length > 0 && (
+                                    <div>
+                                      <h5 className="font-semibold text-gray-900 mb-3 text-sm">{language === "ko" ? "상세 정보" : "Details"}</h5>
+                                      <div className="space-y-2 text-sm">
+                                        {Object.entries(project.details).map(([key, value]) => {
+                                          if (Array.isArray(value)) {
+                                            return (
+                                              <div key={key} className="bg-white/50 rounded-lg p-3">
+                                                <p className="font-medium text-gray-900 mb-2">{key}:</p>
+                                                <ul className="list-disc list-inside space-y-1 text-gray-700">
+                                                  {value.map((item, i) => (
+                                                    <li key={i}>{String(item)}</li>
+                                                  ))}
+                                                </ul>
+                                              </div>
+                                            )
+                                          }
+                                          if (typeof value === 'object' && value !== null) {
+                                            return (
+                                              <div key={key} className="bg-white/50 rounded-lg p-3">
+                                                <p className="font-medium text-gray-900 mb-2">{key}:</p>
+                                                <div className="text-gray-700 space-y-1">
+                                                  {Object.entries(value).map(([k, v]) => (
+                                                    <div key={k} className="flex gap-2">
+                                                      <span className="font-medium">{k}:</span>
+                                                      <span>{String(v)}</span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )
+                                          }
+                                          return (
+                                            <div key={key} className="bg-white/50 rounded-lg p-3">
+                                              <span className="font-medium text-gray-900">{key}:</span>{' '}
+                                              <span className="text-gray-700">{String(value)}</span>
+                                            </div>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* ===== VISION TAB ===== */}
+            {activeTab === "vision" && (
+              <div className="space-y-12">
+                {/* Philosophy Quote */}
+                <div className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-12 border border-gray-200/50 overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-100/30 to-purple-100/30 rounded-full blur-3xl"></div>
+                  {isAdmin && (
+                    <div className="absolute top-4 right-4 z-20">
+                      <button
+                        onClick={() => handleAIImprove("visionQuote", c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention"), 'quote')}
+                        disabled={aiLoading === "visionQuote"}
+                        className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      >
+                        {aiLoading === "visionQuote" ? (
+                          <>
+                            <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            {language === "ko" ? "개선 중..." : "Improving..."}
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            {language === "ko" ? "AI 개선" : "AI Improve"}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                  <div className="relative text-center">
+                    <div className="inline-block mb-6">
+                      <svg className="w-12 h-12 text-blue-400 opacity-30" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                      </svg>
+                    </div>
+                    <blockquote className="text-3xl font-light text-gray-800 mb-6 leading-relaxed">
+                      <EditableField
+                        value={c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention")}
+                        onSave={save("visionQuote")}
+                        as="span"
+                        className="text-3xl font-light text-gray-800"
+                        multiline
+                      />
+                    </blockquote>
+                    <EditableField value={c("visionAuthor", "- Sophia Ko")} onSave={save("visionAuthor")} as="p" className="text-gray-500 font-medium" />
+                  </div>
+                </div>
+
+                {/* Value Cards */}
+                <div>
+                  <SectionHeader title={language === "ko" ? "핵심 가치" : "Core Values"} editKey="valuesTitle" />
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {[
+                      {
+                        icon: "🎯",
+                        title: language === "ko" ? "사용자 중심" : "User-Centric",
+                        description: language === "ko" ? "모든 결정의 중심에는 사용자가 있습니다" : "Users are at the center of every decision",
+                        impact: language === "ko" ? "95% 사용자 만족도 달성" : "95% user satisfaction achieved"
+                      },
+                      {
+                        icon: "📊",
+                        title: language === "ko" ? "데이터 기반" : "Data-Driven",
+                        description: language === "ko" ? "명확한 데이터로 의사결정을 내립니다" : "Make decisions based on clear data",
+                        impact: language === "ko" ? "의사결정 속도 60% 향상" : "60% faster decision making"
+                      },
+                      {
+                        icon: "🛡️",
+                        title: language === "ko" ? "예방적 품질" : "Preventive Quality",
+                        description: language === "ko" ? "문제를 사전에 예방합니다" : "Prevent problems before they occur",
+                        impact: language === "ko" ? "프로덕션 버그 80% 감소" : "80% reduction in production bugs"
+                      }
+                    ].map((value, i) => (
+                      <div key={i} className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleAIImprove(`value_${i}_d`, c(`value_${i}_d`, value.description), 'text')}
+                            disabled={aiLoading === `value_${i}_d`}
+                            className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs rounded hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            {aiLoading === `value_${i}_d` ? (
+                              <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : (
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                            )}
+                          </button>
+                        )}
+                        <div className="text-4xl mb-4">{value.icon}</div>
+                        <EditableField value={c(`value_${i}_t`, value.title)} onSave={save(`value_${i}_t`)} as="h3" className="text-xl font-semibold text-gray-900 mb-3" />
+                        <EditableField value={c(`value_${i}_d`, value.description)} onSave={save(`value_${i}_d`)} as="p" className="text-gray-700 mb-4 text-sm" multiline />
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                          <EditableField value={c(`value_${i}_i`, value.impact)} onSave={save(`value_${i}_i`)} as="span" className="text-blue-700 font-medium text-xs" />
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <EditableField value={vc(`gl_${index}_t`, goal.title)} onSave={vsave(`gl_${index}_t`)} as="h3" className="font-semibold text-gray-900 text-xl mb-2" />
-                        <EditableField value={vc(`gl_${index}_d`, goal.description)} onSave={vsave(`gl_${index}_d`)} as="p" className="text-gray-700 leading-relaxed mb-3" multiline />
-                        <div className="bg-green-50 rounded-xl px-4 py-2 border border-green-100 inline-block">
-                          <EditableField value={vc(`gl_${index}_ei`, goal.expectedImpact)} onSave={vsave(`gl_${index}_ei`)} as="span" className="text-green-800 font-medium text-sm" />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3-Stage Roadmap */}
+                <div>
+                  <SectionHeader title={language === "ko" ? "비전 로드맵" : "Vision Roadmap"} editKey="roadmapTitle" />
+                  <div className="relative">
+                    {/* Timeline Line */}
+                    <div className="hidden md:block absolute top-12 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 rounded-full"></div>
+
+                    <div className="grid md:grid-cols-3 gap-8 relative">
+                      {[
+                        {
+                          timeline: "2025",
+                          phase: language === "ko" ? "1단계" : "Phase 1",
+                          title: language === "ko" ? "AI 기반 QA 도구 개발" : "AI-Powered QA Tool Development",
+                          description: language === "ko" ? "머신러닝을 활용한 자동 테스트 케이스 생성 도구를 개발하여 테스트 효율성을 극대화합니다." : "Develop automated test case generation tools using machine learning to maximize testing efficiency.",
+                          goals: language === "ko" ? ["테스트 케이스 작성 시간 70% 단축", "AI 기반 버그 예측 모델 구축", "자동화 커버리지 95% 달성"] : ["70% reduction in test case writing time", "Build AI-based bug prediction model", "Achieve 95% automation coverage"],
+                          color: "from-blue-500 to-blue-600"
+                        },
+                        {
+                          timeline: "2026",
+                          phase: language === "ko" ? "2단계" : "Phase 2",
+                          title: language === "ko" ? "QA 교육 플랫폼 구축" : "QA Education Platform",
+                          description: language === "ko" ? "주니어 QA 엔지니어들을 위한 체계적인 교육 플랫폼을 만들어 업계 전체의 품질 수준을 높입니다." : "Create systematic education platform for junior QA engineers to raise industry-wide quality standards.",
+                          goals: language === "ko" ? ["온라인 QA 교육 과정 20개 개발", "1,000명 이상 교육생 배출", "업계 QA 역량 전반적 향상"] : ["Develop 20 online QA courses", "Train 1,000+ students", "Overall improvement in industry QA capabilities"],
+                          color: "from-purple-500 to-purple-600"
+                        },
+                        {
+                          timeline: "2027+",
+                          phase: language === "ko" ? "3단계" : "Phase 3",
+                          title: language === "ko" ? "품질 우선 문화 전파" : "Quality-First Culture Evangelism",
+                          description: language === "ko" ? "기업 문화 차원에서 품질을 최우선으로 생각하는 조직을 만드는 컨설팅을 제공합니다." : "Provide consulting to create organizations that prioritize quality at the corporate culture level.",
+                          goals: language === "ko" ? ["품질 우선 기업 문화 확산", "10개 이상 기업 컨설팅", "QA 커뮤니티 활성화"] : ["Spread quality-first corporate culture", "Consult 10+ companies", "Activate QA community"],
+                          color: "from-pink-500 to-pink-600"
+                        }
+                      ].map((roadmap, i) => (
+                        <div key={i} className="relative">
+                          {/* Circle Marker */}
+                          <div className={`hidden md:flex absolute -top-3 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-gradient-to-br ${roadmap.color} rounded-full border-4 border-white shadow-lg z-10`}></div>
+
+                          <div className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-xl transition-all duration-300 mt-8">
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleAIImprove(`roadmap_${i}_desc`, c(`roadmap_${i}_desc`, roadmap.description), 'text')}
+                                disabled={aiLoading === `roadmap_${i}_desc`}
+                                className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs rounded hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                              >
+                                {aiLoading === `roadmap_${i}_desc` ? (
+                                  <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                  </svg>
+                                )}
+                              </button>
+                            )}
+                            <div className={`inline-block bg-gradient-to-r ${roadmap.color} text-white text-xs font-bold px-3 py-1.5 rounded-full mb-3`}>
+                              <EditableField value={c(`roadmap_${i}_timeline`, roadmap.timeline)} onSave={save(`roadmap_${i}_timeline`)} as="span" className="text-white text-xs font-bold" />
+                            </div>
+                            <div className="text-xs text-gray-500 font-medium mb-2">
+                              <EditableField value={c(`roadmap_${i}_phase`, roadmap.phase)} onSave={save(`roadmap_${i}_phase`)} as="span" className="text-gray-500 text-xs" />
+                            </div>
+                            <EditableField value={c(`roadmap_${i}_title`, roadmap.title)} onSave={save(`roadmap_${i}_title`)} as="h3" className="text-lg font-semibold text-gray-900 mb-3" />
+                            <EditableField value={c(`roadmap_${i}_desc`, roadmap.description)} onSave={save(`roadmap_${i}_desc`)} as="p" className="text-gray-700 text-sm mb-4 leading-relaxed" multiline />
+
+                            <div className="space-y-2">
+                              {roadmap.goals.map((goal, gi) => (
+                                <div key={gi} className="flex items-start">
+                                  <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  <span className="text-xs text-gray-600">{goal}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* R&D Interest Areas */}
+                <div>
+                  <SectionHeader title={language === "ko" ? "R&D 관심 분야" : "R&D Interest Areas"} editKey="rdTitle" />
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {[
+                      {
+                        icon: "🤖",
+                        title: language === "ko" ? "AI/ML 기반 테스팅" : "AI/ML-based Testing",
+                        description: language === "ko" ? "인공지능과 머신러닝을 활용한 지능형 테스트 자동화 연구" : "Research on intelligent test automation using AI and machine learning",
+                        topics: language === "ko" ? ["자동 테스트 케이스 생성", "버그 예측 모델", "이상 탐지 시스템"] : ["Automated test case generation", "Bug prediction models", "Anomaly detection systems"]
+                      },
+                      {
+                        icon: "🔬",
+                        title: language === "ko" ? "성능 최적화" : "Performance Optimization",
+                        description: language === "ko" ? "대규모 시스템의 성능 테스트 및 병목 지점 분석 기법 연구" : "Research on performance testing and bottleneck analysis for large-scale systems",
+                        topics: language === "ko" ? ["분산 부하 테스트", "실시간 성능 모니터링", "자동 성능 회귀 감지"] : ["Distributed load testing", "Real-time performance monitoring", "Automated performance regression detection"]
+                      },
+                      {
+                        icon: "🔐",
+                        title: language === "ko" ? "보안 테스팅" : "Security Testing",
+                        description: language === "ko" ? "최신 보안 위협에 대응하는 자동화된 보안 테스트 프레임워크 개발" : "Development of automated security testing frameworks for emerging threats",
+                        topics: language === "ko" ? ["OWASP Top 10 자동 검증", "침투 테스트 자동화", "취약점 스캐닝"] : ["Automated OWASP Top 10 verification", "Penetration testing automation", "Vulnerability scanning"]
+                      },
+                      {
+                        icon: "📱",
+                        title: language === "ko" ? "크로스 플랫폼 테스팅" : "Cross-Platform Testing",
+                        description: language === "ko" ? "다양한 플랫폼과 디바이스에서 일관된 품질을 보장하는 테스트 전략 연구" : "Research on test strategies ensuring consistent quality across platforms and devices",
+                        topics: language === "ko" ? ["통합 테스트 프레임워크", "클라우드 기반 디바이스 팜", "시각적 회귀 테스트"] : ["Unified testing framework", "Cloud-based device farm", "Visual regression testing"]
+                      }
+                    ].map((area, i) => (
+                      <div key={i} className="relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg hover:border-blue-200 transition-all duration-300">
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleAIImprove(`rd_${i}_d`, c(`rd_${i}_d`, area.description), 'text')}
+                            disabled={aiLoading === `rd_${i}_d`}
+                            className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs rounded hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            {aiLoading === `rd_${i}_d` ? (
+                              <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            ) : (
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                            )}
+                          </button>
+                        )}
+                        <div className="flex items-start gap-4 mb-4">
+                          <div className="text-3xl">{area.icon}</div>
+                          <div className="flex-1">
+                            <EditableField value={c(`rd_${i}_t`, area.title)} onSave={save(`rd_${i}_t`)} as="h3" className="text-lg font-semibold text-gray-900 mb-2" />
+                            <EditableField value={c(`rd_${i}_d`, area.description)} onSave={save(`rd_${i}_d`)} as="p" className="text-gray-700 text-sm" multiline />
+                          </div>
+                        </div>
+                        <div className="space-y-2 pl-12">
+                          {area.topics.map((topic, ti) => (
+                            <div key={ti} className="flex items-center">
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
+                              <span className="text-xs text-gray-600">{topic}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-10 text-white shadow-2xl">
+                  <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-8">
+                      <h2 className="text-2xl font-bold mb-2">
+                        {language === "ko" ? "함께 품질을 구축할 준비가 되셨나요?" : "Ready to Build Quality Together?"}
+                      </h2>
+                      <p className="text-gray-400">
+                        {language === "ko" ? "사용자가 사랑하고 개발자가 자랑스러워하는 제품을 만들어봅시다." : "Let's create products that users love and developers are proud of."}
+                      </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6 mb-8 text-center md:text-left">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                          {language === "ko" ? "연락처" : "Contact"}
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          {footerContact.map((item) => (
+                            <a
+                              key={item.id}
+                              href={item.content.link}
+                              className="flex items-center justify-center md:justify-start text-gray-300 hover:text-white transition-colors"
+                              {...(item.content.link?.startsWith('http') && { target: "_blank", rel: "noopener noreferrer" })}
+                            >
+                              {item.content.icon && getIcon(item.content.icon)}
+                              {item.content.value}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                          {language === "ko" ? "빠른 링크" : "Quick Links"}
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          {footerLinks.map((item) => (
+                            <a
+                              key={item.id}
+                              href={item.content.link}
+                              className="block text-gray-300 hover:text-white transition-colors"
+                            >
+                              {item.content.label}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                          {language === "ko" ? "전문 분야" : "Expertise"}
+                        </h3>
+                        <div className="space-y-2 text-sm text-gray-300">
+                          {footerExpertise.map((item) => (
+                            <p key={item.id}>{item.content.label}</p>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Contact + CTA */}
-            <div className="bg-gray-900 rounded-3xl p-10 text-center text-white shadow-2xl">
-              <EditableField value={vc("ctaTitle", currentContent.vision.ctaTitle)} onSave={vsave("ctaTitle")} as="h2" className="text-3xl font-light mb-3 text-white" />
-              <EditableField value={vc("ctaDesc", currentContent.vision.ctaDescription)} onSave={vsave("ctaDesc")} as="p" className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto" />
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                {currentContent.vision.contacts.map((contact, i) => (
-                  <div key={i} className="text-center">
-                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2">
-                      <span className="text-white font-bold">{contact.icon}</span>
+                    <div className="border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
+                      <p>© {new Date().getFullYear()} Sophia Ko. {language === "ko" ? "모든 권리 보유." : "All rights reserved."}</p>
                     </div>
-                    <p className="text-gray-400 text-xs mb-1">{contact.label}</p>
-                    <p className="text-white text-sm font-mono">{contact.value}</p>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Admin Login Button - Hidden */}
+      {/* <AdminLoginButton language={language} /> */}
+
+
+      {/* Add Item Modal */}
+      <AddItemModal
+        isOpen={showAddModal}
+        onClose={() => { setShowAddModal(false); setEditingItem(null); }}
+        onSave={handleSaveItem}
+        itemType={modalType}
+        language={language}
+        editingItem={editingItem}
+      />
+
+      {/* Add Project Modal */}
+      <AddProjectModal
+        isOpen={showProjectModal}
+        onClose={() => { setShowProjectModal(false); setSelectedCompany(""); setEditingProject(null); }}
+        onSave={handleSaveProject}
+        company={selectedCompany}
+        language={language}
+        editingProject={editingProject}
+      />
+
+      {/* Admin Settings Modal */}
+      <AdminSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        language={language}
+      />
     </div>
   )
 }

@@ -46,6 +46,8 @@ export default function BlogPage() {
   const [formTags, setFormTags] = useState("")
   const [formCoverColor, setFormCoverColor] = useState(COVER_COLORS[0])
   const [formPublished, setFormPublished] = useState(true)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState("")
 
   const DUMMY_POSTS: BlogPost[] = [
     {
@@ -131,6 +133,49 @@ export default function BlogPage() {
     setFormCoverColor(post.cover_color)
     setFormPublished(post.published)
     setShowEditor(true)
+  }
+
+  const handleAIImprove = async () => {
+    const hasContent = formTitle.trim() || formContent.trim()
+    if (!hasContent) {
+      setAiError(language === "ko" ? "먼저 기본 내용을 입력하세요" : "Please enter some basic content first")
+      return
+    }
+
+    setAiLoading(true)
+    setAiError("")
+
+    try {
+      const response = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: 'blog content improvement',
+          type: 'blog',
+          language,
+          formData: {
+            title: formTitle,
+            content: formContent,
+            tags: formTags
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'AI 생성 실패')
+      }
+
+      const data = await response.json()
+      setFormTitle(data.title || formTitle)
+      setFormContent(data.content || formContent)
+      setFormTags(data.tags || formTags)
+    } catch (error: any) {
+      console.error("AI 개선 오류:", error)
+      setAiError(error.message || (language === "ko" ? "AI 생성 중 오류가 발생했습니다" : "Error generating with AI"))
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -225,6 +270,50 @@ export default function BlogPage() {
               <h2 className="text-2xl font-semibold text-gray-900 mb-6">
                 {editingPost ? (language === "ko" ? "글 수정" : "Edit Post") : (language === "ko" ? "새 글 작성" : "New Post")}
               </h2>
+
+              {/* AI Content Improvement */}
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200 mb-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                      ✨ {language === "ko" ? "AI 내용 개선" : "AI Content Improvement"}
+                    </h3>
+                    <p className="text-xs text-gray-600">
+                      {language === "ko"
+                        ? "기본 내용을 입력하고 버튼을 누르면 AI가 더 전문적이고 매력적으로 개선해드립니다"
+                        : "Enter basic content and click to have AI improve it professionally"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAIImprove}
+                    disabled={aiLoading}
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap"
+                  >
+                    {aiLoading ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {language === "ko" ? "개선 중..." : "Improving..."}
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        {language === "ko" ? "AI로 개선" : "Improve"}
+                      </>
+                    )}
+                  </button>
+                </div>
+                {aiError && (
+                  <div className="mt-2 text-xs text-red-600 bg-red-50 rounded px-2 py-1">
+                    {aiError}
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-5">
                 <div>
