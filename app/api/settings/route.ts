@@ -3,6 +3,12 @@ import { createClient } from "@/lib/supabase"
 
 const USER_ID = "sophia.ko"
 
+const DEFAULT_SETTINGS = {
+  gpt_api_key: "",
+  ai_model: "gpt-4",
+  ai_enabled: false,
+}
+
 export async function GET() {
   try {
     const supabase = createClient()
@@ -15,20 +21,13 @@ export async function GET() {
 
     if (error) {
       console.error("Error loading settings:", error)
-      return NextResponse.json({
-        gpt_api_key: "",
-        ai_model: "gpt-4",
-        ai_enabled: false
-      })
+      return NextResponse.json(DEFAULT_SETTINGS)
     }
 
     return NextResponse.json(data.settings)
   } catch (error) {
     console.error("Error in GET /api/settings:", error)
-    return NextResponse.json(
-      { error: "Failed to load settings" },
-      { status: 500 }
-    )
+    return NextResponse.json(DEFAULT_SETTINGS)
   }
 }
 
@@ -46,17 +45,20 @@ export async function POST(request: Request) {
 
     // Merge with new settings
     const newSettings = {
-      ...(currentData?.settings || {}),
-      ...settings
+      ...(currentData?.settings || DEFAULT_SETTINGS),
+      ...settings,
     }
 
     const { error } = await supabase
       .from("user_settings")
-      .update({
-        settings: newSettings,
-        updated_at: new Date().toISOString()
-      })
-      .eq("user_id", USER_ID)
+      .upsert(
+        {
+          user_id: USER_ID,
+          settings: newSettings,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      )
 
     if (error) {
       console.error("Error saving settings:", error)
