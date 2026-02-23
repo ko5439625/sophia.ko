@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase"
-import { translateObject } from "@/lib/translate"
 
 const USER_ID = "sophia.ko"
 
@@ -21,18 +20,15 @@ export interface Project {
 
 let projectsCache: Project[] | null = null
 
-// 프로젝트에서 번역할 필드
-const PROJECT_TRANSLATE_FIELDS = ['title', 'overview', 'background', 'category', 'tech_stack']
-
 export async function loadProjects(language: string = "ko"): Promise<Project[]> {
   const supabase = createClient()
 
-  // 항상 한국어 데이터만 로드
+  // 요청된 언어의 데이터를 직접 로드
   const { data, error } = await supabase
     .from("projects")
     .select("*")
     .eq("user_id", USER_ID)
-    .eq("language", "ko") // 항상 한국어 데이터 로드
+    .eq("language", language)
     .order("display_order", { ascending: true })
 
   if (error) {
@@ -40,22 +36,19 @@ export async function loadProjects(language: string = "ko"): Promise<Project[]> 
     return []
   }
 
-  if (!data) return []
-
-  // 영어 요청 시 실시간 번역
-  if (language === "en") {
-    const translatedData = await Promise.all(
-      data.map(async (project) => ({
-        ...project,
-        title: await translateObject({ title: project.title }, ['title']).then(r => r.title),
-        overview: await translateObject({ overview: project.overview }, ['overview']).then(r => r.overview),
-        background: project.background
-          ? await translateObject({ background: project.background }, ['background']).then(r => r.background)
-          : null,
-      }))
-    )
-    projectsCache = translatedData
-    return translatedData
+  if (!data || data.length === 0) {
+    // 해당 언어 데이터가 없으면 한국어 폴백
+    if (language !== "ko") {
+      const { data: koData } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .eq("language", "ko")
+        .order("display_order", { ascending: true })
+      projectsCache = koData || []
+      return projectsCache
+    }
+    return []
   }
 
   projectsCache = data

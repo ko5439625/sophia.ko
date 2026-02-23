@@ -18,6 +18,12 @@ function getCurrentLanguage(): string {
   return localStorage.getItem("language") || "ko"
 }
 
+// Reset cache (call when language changes or data needs refresh)
+export function resetContentCache(): void {
+  contentCache = null
+  isCacheInitialized = false
+}
+
 // Initialize content cache from Supabase
 export async function initializeContentCache(): Promise<void> {
   if (isCacheInitialized) return

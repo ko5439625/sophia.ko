@@ -49,20 +49,6 @@ export default function BlogPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState("")
 
-  const DUMMY_POSTS: BlogPost[] = [
-    {
-      id: "dummy-1",
-      title: "QA 엔지니어로서의 첫 자동화 테스트 도입기",
-      content: "입사 초기, 수동으로 진행하던 리그레션 테스트를 자동화로 전환한 경험을 공유합니다.\n\n기존에는 매 스프린트마다 2일씩 수동 리그레션 테스트를 진행했습니다. 반복되는 작업에 피로감이 쌓였고, 휴먼 에러로 인한 누락도 발생했습니다.\n\nSelenium + Python으로 첫 자동화 스크립트를 작성했을 때의 짜릿함은 아직도 잊을 수 없습니다. 초기에는 유지보수 비용이 더 높다는 팀원들의 우려가 있었지만, Page Object Model 패턴을 도입하고 CI/CD 파이프라인에 통합한 후에는 테스트 시간을 70% 단축할 수 있었습니다.\n\n핵심 교훈:\n- 자동화는 목적이 아니라 수단이다\n- 안정적인 테스트 인프라가 먼저다\n- 팀의 공감대 형성이 가장 중요하다",
-      category: "automation",
-      tags: ["Selenium", "자동화", "CI/CD", "회고"],
-      cover_color: "#dbeafe",
-      published: true,
-      created_at: "2025-01-15T09:00:00Z",
-      updated_at: "2025-01-15T09:00:00Z",
-    },
-  ]
-
   useEffect(() => {
     const saved = localStorage.getItem("language") as "ko" | "en"
     if (saved) setLanguage(saved)
@@ -76,13 +62,9 @@ export default function BlogPage() {
         .from("blog_posts")
         .select("*")
         .order("created_at", { ascending: false })
-      if (data && data.length > 0) {
-        setPosts(data)
-      } else {
-        setPosts(DUMMY_POSTS)
-      }
+      setPosts(data || [])
     } catch {
-      setPosts(DUMMY_POSTS)
+      setPosts([])
     }
   }
 

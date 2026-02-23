@@ -429,57 +429,10 @@ export default function ExperiencePage() {
   console.log("Total projects:", projects.length)
   console.log("QA projects:", qaProjects.length)
 
-  // Hardcoded content structure (to be made dynamic later)
-  const overview = {
-    summary: language === "ko"
-      ? "5년간 다양한 도메인에서 QA 업무를 수행하며 품질 보증의 전 영역을 경험했습니다. 단순한 테스트 실행을 넘어 품질 문화 구축과 프로세스 개선에 집중하고 있습니다."
-      : "Over 5 years of QA experience across various domains, covering all aspects of quality assurance. Focus on building quality culture and process improvement beyond simple test execution.",
-    highlights: [
-      {
-        title: language === "ko" ? "테스트 자동화 전문성" : "Test Automation Expertise",
-        description: language === "ko" ? "Selenium, Cypress, Appium을 활용한 E2E 자동화 구축" : "E2E automation using Selenium, Cypress, and Appium",
-        impact: language === "ko" ? "테스트 시간 70% 단축" : "70% reduction in test time"
-      },
-      {
-        title: language === "ko" ? "크로스 플랫폼 경험" : "Cross-Platform Experience",
-        description: language === "ko" ? "iOS, Android, Web 플랫폼 전반의 테스트 경험" : "Testing experience across iOS, Android, and Web platforms",
-        impact: language === "ko" ? "8개 플랫폼 동시 지원" : "Supporting 8 platforms simultaneously"
-      },
-      {
-        title: language === "ko" ? "보안 테스트 전문성" : "Security Testing Expertise",
-        description: language === "ko" ? "OWASP 기반 보안 취약점 검증 및 침투 테스트" : "OWASP-based security vulnerability verification and penetration testing",
-        impact: language === "ko" ? "보안 이슈 0건 달성" : "Zero security issues achieved"
-      },
-      {
-        title: language === "ko" ? "성능 최적화" : "Performance Optimization",
-        description: language === "ko" ? "부하 테스트 및 성능 병목 지점 분석" : "Load testing and performance bottleneck analysis",
-        impact: language === "ko" ? "응답 시간 50% 개선" : "50% improvement in response time"
-      }
-    ],
-    timeline: [
-      { year: "2020", role: language === "ko" ? "Junior QA Engineer" : "Junior QA Engineer", company: language === "ko" ? "스타트업 A" : "Startup A", focus: language === "ko" ? "모바일 앱 테스팅" : "Mobile App Testing" },
-      { year: "2021", role: language === "ko" ? "QA Engineer" : "QA Engineer", company: language === "ko" ? "스타트업 A" : "Startup A", focus: language === "ko" ? "테스트 자동화" : "Test Automation" },
-      { year: "2022", role: language === "ko" ? "Senior QA Engineer" : "Senior QA Engineer", company: language === "ko" ? "핀테크 B" : "Fintech B", focus: language === "ko" ? "결제 시스템 QA" : "Payment System QA" },
-      { year: "2023", role: language === "ko" ? "Senior QA Engineer" : "Senior QA Engineer", company: language === "ko" ? "핀테크 B" : "Fintech B", focus: language === "ko" ? "보안 & 성능 테스트" : "Security & Performance Testing" },
-      { year: "2024", role: language === "ko" ? "Lead QA Engineer" : "Lead QA Engineer", company: language === "ko" ? "테크 C" : "Tech C", focus: language === "ko" ? "QA 프로세스 혁신" : "QA Process Innovation" }
-    ],
-    metrics: [
-      { label: language === "ko" ? "프로젝트 성공률" : "Project Success Rate", value: "99.7%", description: language === "ko" ? "15개 프로젝트 중 모든 프로젝트 성공적 완료" : "All 15 projects successfully completed" },
-      { label: language === "ko" ? "버그 발견율" : "Bug Discovery Rate", value: "95%", description: language === "ko" ? "프로덕션 배포 전 95% 이상의 버그 사전 발견" : "95%+ bugs found before production" },
-      { label: language === "ko" ? "테스트 자동화율" : "Test Automation Rate", value: "85%", description: language === "ko" ? "반복 테스트의 85%를 자동화로 전환" : "85% of repetitive tests automated" },
-      { label: language === "ko" ? "팀 효율성 향상" : "Team Efficiency Improvement", value: "40%", description: language === "ko" ? "프로세스 개선을 통한 팀 생산성 향상" : "Productivity improved through process optimization" }
-    ],
-    skills: [
-      { category: language === "ko" ? "모바일 테스팅" : "Mobile Testing", tools: ["XCTest", "XCUITest", "TestFlight", "Espresso", "UI Automator", "Firebase Test Lab"] },
-      { category: language === "ko" ? "웹 테스팅" : "Web Testing", tools: ["Selenium", "Cypress", "Playwright", "Postman", "REST Assured", "Newman"] },
-      { category: language === "ko" ? "자동화 & DevOps" : "Automation & DevOps", tools: ["Python", "Java", "Jenkins", "GitHub Actions", "JMeter", "K6"] }
-    ],
-    certifications: [
-      { name: "ISTQB Foundation Level", year: "2021", issuer: "ISTQB" },
-      { name: "AWS Certified Cloud Practitioner", year: "2022", issuer: "Amazon" },
-      { name: "Certified Ethical Hacker (CEH)", year: "2023", issuer: "EC-Council" }
-    ]
-  }
+  // Default summary (only used as EditableField fallback text)
+  const defaultSummary = language === "ko"
+    ? "5년간 다양한 도메인에서 QA 업무를 수행하며 품질 보증의 전 영역을 경험했습니다."
+    : "Over 5 years of QA experience across various domains, covering all aspects of quality assurance."
 
   const SectionHeader = ({ title, editKey, onAdd, addLabel }: { title: string; editKey?: string; onAdd?: () => void; addLabel?: string }) => (
     <div className="mb-8">
@@ -513,10 +466,8 @@ export default function ExperiencePage() {
     { bg: "bg-amber-600", light: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
   ]
 
-  // Use Supabase data if available, otherwise fallback to hardcoded
-  const actualTimeline = timelineData.length > 0
-    ? timelineData.map(t => t.content)
-    : overview.timeline
+  // Always use Supabase data (no hardcoded fallback)
+  const actualTimeline = timelineData.map(t => t.content)
 
   console.log("=== Timeline Data Debug ===")
   console.log("timelineData:", timelineData)
@@ -644,7 +595,7 @@ export default function ExperiencePage() {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/30 rounded-full -translate-y-8 translate-x-8"></div>
                     {isAdmin && (
                       <button
-                        onClick={() => handleAIImprove("summary", c("summary", overview.summary), 'text')}
+                        onClick={() => handleAIImprove("summary", c("summary", defaultSummary), 'text')}
                         disabled={aiLoading === "summary"}
                         className="absolute top-4 right-4 z-20 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                       >
@@ -668,7 +619,7 @@ export default function ExperiencePage() {
                     )}
                     <div className="relative z-10">
                       <EditableField value={c("summaryTitle", language === "ko" ? "요약" : "Summary")} onSave={save("summaryTitle")} as="h2" className="text-2xl font-light text-gray-900 mb-6" />
-                      <EditableField value={c("summary", overview.summary)} onSave={save("summary")} as="p" className="text-gray-800 text-lg leading-relaxed" multiline />
+                      <EditableField value={c("summary", defaultSummary)} onSave={save("summary")} as="p" className="text-gray-800 text-lg leading-relaxed" multiline />
                     </div>
                   </div>
                 </div>
@@ -682,7 +633,7 @@ export default function ExperiencePage() {
                     addLabel={language === "ko" ? "+ 강점 추가" : "+ Add Highlight"}
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {(highlightsData.length > 0 ? highlightsData : overview.highlights.map((h, i) => ({ id: `temp-${i}`, content: h }))).map((item, index) => {
+                    {(highlightsData).map((item, index) => {
                       const content = item.content || item
                       return (
                         <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
@@ -727,7 +678,7 @@ export default function ExperiencePage() {
                     addLabel={language === "ko" ? "+ 성과 추가" : "+ Add Metric"}
                   />
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {(metricsData.length > 0 ? metricsData : overview.metrics.map((m, i) => ({ id: `temp-${i}`, content: m }))).map((item, index) => {
+                    {(metricsData).map((item, index) => {
                       const content = item.content || item
                       return (
                         <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-5 text-center hover:shadow-md hover:-translate-y-1 transition-all duration-300">
@@ -770,7 +721,7 @@ export default function ExperiencePage() {
                       addLabel={language === "ko" ? "+ 기술 추가" : "+ Add Skill"}
                     />
                     <div className="space-y-3">
-                      {(skillsData.length > 0 ? skillsData : overview.skills.map((s, i) => ({ id: `temp-${i}`, content: s }))).map((item, index) => {
+                      {(skillsData).map((item, index) => {
                         const content = item.content || item
                         return (
                           <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4">
@@ -817,7 +768,7 @@ export default function ExperiencePage() {
                       addLabel={language === "ko" ? "+ 자격증 추가" : "+ Add Cert"}
                     />
                     <div className="space-y-3">
-                      {(certificationsData.length > 0 ? certificationsData : overview.certifications.map((c, i) => ({ id: `temp-${i}`, content: c }))).map((item, index) => {
+                      {(certificationsData).map((item, index) => {
                         const content = item.content || item
                         return (
                           <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200/50 p-4 flex items-center justify-between">
@@ -872,7 +823,7 @@ export default function ExperiencePage() {
                   <div className="relative">
                     <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gray-200 z-0"></div>
                     <div className="flex flex-wrap gap-3 relative z-10">
-                      {(timelineData.length > 0 ? timelineData : overview.timeline.map((t, i) => ({ id: `temp-${i}`, content: t }))).map((item, index) => {
+                      {(timelineData).map((item, index) => {
                         const content = item.content || item
                         const colorIdx = companyColorMap[content.company] ?? 0
                         const color = timelineColors[colorIdx]

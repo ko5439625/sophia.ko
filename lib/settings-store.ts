@@ -10,9 +10,9 @@ export interface UserSettings {
 
 let settingsCache: UserSettings | null = null
 
-export async function loadSettings(): Promise<UserSettings> {
-  // Return from cache if available
-  if (settingsCache) {
+export async function loadSettings(forceRefresh: boolean = false): Promise<UserSettings> {
+  // Return from cache if available and not forcing refresh
+  if (settingsCache && !forceRefresh) {
     return settingsCache
   }
 
