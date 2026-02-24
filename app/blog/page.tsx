@@ -260,12 +260,6 @@ export default function BlogPage() {
       )
     })
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr)
-    return language === "ko"
-      ? `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`
-      : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
-  }
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/20 ${isAdmin ? "pt-10" : ""}`}>
@@ -461,10 +455,7 @@ export default function BlogPage() {
                     </div>
                   )}
 
-                  {/* Date */}
-                  <div className="text-xs text-gray-400">
-                    <span>{formatDate(post.created_at)}</span>
-                  </div>
+                  {/* Date removed */}
                 </div>
               </div>
             ))}
@@ -511,10 +502,7 @@ export default function BlogPage() {
                 {viewingPost.title}
               </h2>
 
-              {/* Date */}
-              <p className="text-sm text-gray-400 mb-6">
-                {formatDate(viewingPost.created_at)}
-              </p>
+              {/* Date removed */}
 
               {/* Content */}
               <div className="prose prose-gray max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed mb-8">
