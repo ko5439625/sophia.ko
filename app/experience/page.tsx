@@ -7,7 +7,7 @@ import EditableField from "@/components/editable-field"
 import { AddItemModal } from "@/components/add-item-modal"
 import { AddProjectModal } from "@/components/add-project-modal"
 import { AdminSettingsModal } from "@/components/admin-settings-modal"
-import { getContent, setOverrideSync } from "@/lib/content-store"
+import { getContent, setOverrideSync, initializeContentCache } from "@/lib/content-store"
 import {
   loadExperienceData,
   addExperienceData,
@@ -97,6 +97,11 @@ export default function ExperiencePage() {
   const [footerExpertise, setFooterExpertise] = useState<FooterItem[]>([])
 
   useEffect(() => {
+    // Initialize content cache from Supabase, then re-render
+    initializeContentCache().then(() => {
+      forceUpdate(n => n + 1)
+    })
+
     const savedLanguage = localStorage.getItem("language") as "ko" | "en"
     if (savedLanguage) setLanguage(savedLanguage)
 
