@@ -390,6 +390,12 @@ export default function ExperiencePage() {
       console.log("리로드된 프로젝트:", updatedProjects)
       setProjects(updatedProjects)
 
+      // Update expandedCompany if company name changed
+      const newCompany = projectData.details?.company
+      if (newCompany && newCompany !== expandedCompany) {
+        setExpandedCompany(newCompany)
+      }
+
       setShowProjectModal(false)
       setSelectedCompany("")
       setEditingProject(null)
