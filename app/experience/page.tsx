@@ -511,13 +511,13 @@ export default function ExperiencePage() {
   const SectionHeader = ({ title, editKey, onAdd, addLabel }: { title: string; editKey?: string; onAdd?: () => void; addLabel?: string }) => (
     <div className="mb-8">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center flex-1 mr-4">
           {editKey ? (
-            <EditableField value={c(editKey, title)} onSave={save(editKey)} as="h2" className="text-2xl font-semibold text-gray-900 mb-2" />
+            <EditableField value={c(editKey, title)} onSave={save(editKey)} as="h2" className="text-2xl font-semibold text-gray-900 tracking-tight mr-4" />
           ) : (
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">{title}</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 tracking-tight mr-4">{title}</h2>
           )}
-          <div className="w-12 h-0.5 bg-blue-600 rounded-full"></div>
+          <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
         </div>
         {isAdmin && onAdd && (
           <button
@@ -1126,8 +1126,8 @@ export default function ExperiencePage() {
               <div className="space-y-12">
                 {/* Philosophy Quote */}
                 <div className="relative bg-white rounded-2xl p-10 md:p-14 border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="absolute top-6 left-8 text-[120px] leading-none font-serif text-blue-100/60 select-none pointer-events-none">&ldquo;</div>
-                  <div className="absolute bottom-2 right-8 text-[120px] leading-none font-serif text-blue-100/60 select-none pointer-events-none">&rdquo;</div>
+                  <div className="absolute top-6 left-8 text-[120px] leading-none font-serif text-gray-200 select-none pointer-events-none">&ldquo;</div>
+                  <div className="absolute bottom-2 right-8 text-[120px] leading-none font-serif text-gray-200 select-none pointer-events-none">&rdquo;</div>
                   {isAdmin && (
                     <div className="absolute top-4 right-4 z-20">
                       <button
@@ -1215,7 +1215,11 @@ export default function ExperiencePage() {
                             )}
                           </button>
                         )}
-                        <div className="text-4xl mb-4">{value.icon}</div>
+                        <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
+                          {i === 0 && <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
+                          {i === 1 && <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.42 15.17l-5.59-5.59a2 2 0 010-2.83l.17-.17a2 2 0 012.83 0l2.17 2.17 2.17-2.17a2 2 0 012.83 0l.17.17a2 2 0 010 2.83l-5.59 5.59a1 1 0 01-1.41 0zM19.42 15.17l-1.59-1.59M4 20h16" /></svg>}
+                          {i === 2 && <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>}
+                        </div>
                         <EditableField value={c(`value_${i}_t`, value.title)} onSave={save(`value_${i}_t`)} as="h3" className="text-xl font-semibold text-gray-900 mb-3" />
                         <EditableField value={c(`value_${i}_d`, value.description)} onSave={save(`value_${i}_d`)} as="p" className="text-gray-700 mb-4 text-sm" multiline />
                         <div className="flex items-center">
@@ -1360,13 +1364,18 @@ export default function ExperiencePage() {
                           </button>
                         )}
                         <div className="flex items-start gap-4 mb-4">
-                          <div className="text-3xl">{area.icon}</div>
+                          <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            {i === 0 && <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>}
+                            {i === 1 && <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>}
+                            {i === 2 && <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
+                            {i === 3 && <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>}
+                          </div>
                           <div className="flex-1">
                             <EditableField value={c(`rd_${i}_t`, area.title)} onSave={save(`rd_${i}_t`)} as="h3" className="text-lg font-semibold text-gray-900 mb-2" />
                             <EditableField value={c(`rd_${i}_d`, area.description)} onSave={save(`rd_${i}_d`)} as="p" className="text-gray-700 text-sm" multiline />
                           </div>
                         </div>
-                        <div className="space-y-2 pl-12">
+                        <div className="space-y-2 pl-14">
                           {area.topics.map((topic, ti) => (
                             <div key={ti} className="flex items-center">
                               <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
