@@ -66,7 +66,7 @@ export default function ExperiencePage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<"overview" | "projects" | "vision">("overview")
   const [expandedCompany, setExpandedCompany] = useState<string | null>(null)
-  const [selectedProject, setSelectedProject] = useState<number | null>(null)
+  const [selectedProject, setSelectedProject] = useState<string | null>(null)
   const { isAdmin } = useAdmin()
   const [, forceUpdate] = useState(0)
 
@@ -909,8 +909,8 @@ export default function ExperiencePage() {
                           {companyProjects.map((project) => (
                             <div key={project.id} className="space-y-3">
                               <div
-                                className={`relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer ${selectedProject === parseInt(project.id) ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
-                                onClick={() => setSelectedProject(selectedProject === parseInt(project.id) ? null : parseInt(project.id))}
+                                className={`relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer ${selectedProject === project.id ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
+                                onClick={() => setSelectedProject(selectedProject === project.id ? null : project.id)}
                               >
                                 {isAdmin && (
                                   <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
@@ -961,7 +961,7 @@ export default function ExperiencePage() {
                                 </div>
                               </div>
 
-                              {selectedProject === parseInt(project.id) && (
+                              {selectedProject === project.id && (
                                 <div className={`${color.light} rounded-2xl p-6 border ${color.border} shadow-sm`}>
                                   {project.background && (
                                     <div className="mb-6">
