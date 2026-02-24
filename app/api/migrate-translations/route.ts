@@ -31,12 +31,15 @@ export async function POST(request: Request) {
       try {
         const translatedValue = await translateText(item.content_value, apiKey, "en")
 
+        // Convert content_key from KO to EN prefix (e.g., "exp.ko.title" -> "exp.en.title")
+        const enContentKey = item.content_key.replace('.ko.', '.en.')
+
         await supabase
           .from("portfolio_content")
           .upsert({
             user_id: USER_ID,
             language: "en",
-            content_key: item.content_key,
+            content_key: enContentKey,
             content_value: translatedValue,
             updated_at: new Date().toISOString(),
           }, {
@@ -49,34 +52,12 @@ export async function POST(request: Request) {
       }
     }
 
-    // 2. Migrate experience_sections
-    console.log("Migrating experience_sections...")
-    const { data: koExperience } = await supabase
-      .from("experience_sections")
-      .select("*")
-      .eq("user_id", USER_ID)
-      .eq("language", "ko")
-
-    for (const item of koExperience || []) {
-      try {
-        const translatedContent = await translateExperienceContent(item.content, item.section_type, apiKey)
-
-        await supabase
-          .from("experience_sections")
-          .insert({
-            user_id: USER_ID,
-            language: "en",
-            section_type: item.section_type,
-            content: translatedContent,
-            display_order: item.display_order,
-            updated_at: new Date().toISOString(),
-          })
-
-        results.experience++
-      } catch (error: any) {
-        results.errors.push(`Experience ${item.section_type}: ${error.message}`)
-      }
-    }
+    // 2. Migrate experience_data
+    // Note: experience_data is always loaded as KO and translated on-the-fly,
+    // so this migration step is skipped to avoid creating duplicate entries.
+    // The real-time translation in loadExperienceData handles EN display.
+    console.log("Skipping experience_data migration (handled by real-time translation)")
+    results.experience = -1 // indicates skipped
 
     // 3. Migrate projects
     console.log("Migrating projects...")
@@ -90,13 +71,35 @@ export async function POST(request: Request) {
       try {
         const translatedProject = await translateProject(project, apiKey)
 
-        await supabase
+        // Check if EN version already exists for this project_id
+        const { data: existing } = await supabase
           .from("projects")
-          .insert({
-            ...translatedProject,
-            language: "en",
-            updated_at: new Date().toISOString(),
-          })
+          .select("id")
+          .eq("user_id", USER_ID)
+          .eq("language", "en")
+          .eq("project_id", project.project_id)
+          .limit(1)
+
+        if (existing && existing.length > 0) {
+          // Update existing EN project
+          await supabase
+            .from("projects")
+            .update({
+              ...translatedProject,
+              language: "en",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existing[0].id)
+        } else {
+          // Insert new EN project
+          await supabase
+            .from("projects")
+            .insert({
+              ...translatedProject,
+              language: "en",
+              updated_at: new Date().toISOString(),
+            })
+        }
 
         results.projects++
       } catch (error: any) {

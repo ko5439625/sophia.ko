@@ -1125,10 +1125,9 @@ export default function ExperiencePage() {
             {activeTab === "vision" && (
               <div className="space-y-12">
                 {/* Philosophy Quote */}
-                <div className="relative rounded-3xl overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800"></div>
-                  <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
+                <div className="relative bg-white rounded-2xl p-10 md:p-14 border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="absolute top-6 left-8 text-[120px] leading-none font-serif text-blue-100/60 select-none pointer-events-none">&ldquo;</div>
+                  <div className="absolute bottom-2 right-8 text-[120px] leading-none font-serif text-blue-100/60 select-none pointer-events-none">&rdquo;</div>
                   {isAdmin && (
                     <div className="absolute top-4 right-4 z-20">
                       <button
@@ -1155,21 +1154,20 @@ export default function ExperiencePage() {
                       </button>
                     </div>
                   )}
-                  <div className="relative px-8 py-16 md:px-16 md:py-20 text-center">
-                    <div className="w-12 h-[2px] bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-10"></div>
-                    <blockquote className="mb-8 max-w-3xl mx-auto">
+                  <div className="relative text-center py-4">
+                    <blockquote className="mb-6 max-w-3xl mx-auto">
                       <EditableField
                         value={c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention")}
                         onSave={save("visionQuote")}
                         as="span"
-                        className="text-2xl md:text-4xl font-extralight text-white/90 leading-snug tracking-tight italic"
+                        className="text-2xl md:text-3xl font-bold text-gray-400 leading-relaxed"
                         multiline
                       />
                     </blockquote>
                     <div className="flex items-center justify-center gap-3">
-                      <div className="w-6 h-[1px] bg-white/30"></div>
-                      <EditableField value={c("visionAuthor", "Sophia Ko")} onSave={save("visionAuthor")} as="p" className="text-sm font-light text-white/50 uppercase tracking-[0.2em]" />
-                      <div className="w-6 h-[1px] bg-white/30"></div>
+                      <div className="w-8 h-[1px] bg-blue-300"></div>
+                      <EditableField value={c("visionAuthor", "Sophia Ko")} onSave={save("visionAuthor")} as="p" className="text-sm font-medium text-blue-400 tracking-wider" />
+                      <div className="w-8 h-[1px] bg-blue-300"></div>
                     </div>
                   </div>
                 </div>
