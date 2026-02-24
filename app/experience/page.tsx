@@ -1380,23 +1380,23 @@ export default function ExperiencePage() {
                 </div>
 
                 {/* Footer */}
-                <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-10 text-white shadow-2xl">
+                <div className="bg-gray-50 rounded-2xl p-10 border border-gray-200/80">
                   <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-8">
-                      <p className="text-lg font-light text-gray-300 tracking-widest uppercase">Designing Reliable Quality.</p>
+                    <div className="text-center mb-10">
+                      <p className="text-sm font-semibold text-gray-400 uppercase tracking-[0.2em]">Designing Reliable Quality.</p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-6 mb-8 text-center md:text-left">
+                    <div className="grid md:grid-cols-3 gap-8 mb-10 text-center md:text-left">
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
                           {language === "ko" ? "연락처" : "Contact"}
                         </h3>
-                        <div className="space-y-2 text-sm">
+                        <div className="space-y-2.5 text-sm">
                           {footerContact.map((item) => (
                             <a
                               key={item.id}
                               href={item.content.link}
-                              className="flex items-center justify-center md:justify-start text-gray-300 hover:text-white transition-colors"
+                              className="flex items-center justify-center md:justify-start text-gray-500 hover:text-gray-900 transition-colors"
                               {...(item.content.link?.startsWith('http') && { target: "_blank", rel: "noopener noreferrer" })}
                             >
                               {item.content.icon && getIcon(item.content.icon)}
@@ -1407,15 +1407,15 @@ export default function ExperiencePage() {
                       </div>
 
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
                           {language === "ko" ? "빠른 링크" : "Quick Links"}
                         </h3>
-                        <div className="space-y-2 text-sm">
+                        <div className="space-y-2.5 text-sm">
                           {footerLinks.map((item) => (
                             <a
                               key={item.id}
                               href={item.content.link}
-                              className="block text-gray-300 hover:text-white transition-colors"
+                              className="block text-gray-500 hover:text-gray-900 transition-colors"
                             >
                               {item.content.label}
                             </a>
@@ -1424,10 +1424,10 @@ export default function ExperiencePage() {
                       </div>
 
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
                           {language === "ko" ? "전문 분야" : "Expertise"}
                         </h3>
-                        <div className="space-y-2 text-sm text-gray-300">
+                        <div className="space-y-2.5 text-sm text-gray-500">
                           {footerExpertise.map((item) => (
                             <p key={item.id}>{item.content.label}</p>
                           ))}
@@ -1435,7 +1435,7 @@ export default function ExperiencePage() {
                       </div>
                     </div>
 
-                    <div className="border-t border-gray-700 pt-6 text-center text-sm text-gray-400">
+                    <div className="border-t border-gray-200 pt-6 text-center text-xs text-gray-400">
                       <p>© {new Date().getFullYear()} Sophia Ko. {language === "ko" ? "모든 권리 보유." : "All rights reserved."}</p>
                     </div>
                   </div>

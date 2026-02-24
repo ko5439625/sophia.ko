@@ -402,14 +402,22 @@ export default function AboutPage() {
         </div>
 
         {/* Fun Fact */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-200/50">
-          <div className="flex items-center justify-center text-center">
-            <EditableField
-              value={c("funFact", language === "ko" ? "재미있는 사실: 예방적 QA 프로세스를 구현해서 찾은 버그보다 예방한 버그가 더 많아요!" : "Fun fact: I've prevented more bugs than I've found by implementing preventive QA processes!")}
-              onSave={save("funFact")}
-              as="p"
-              className="text-gray-700 font-medium"
-            />
+        <div className="relative bg-gray-50 rounded-2xl p-8 border border-gray-200/80">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0 w-10 h-10 bg-white rounded-xl border border-gray-200 flex items-center justify-center shadow-sm">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div className="flex-1 pt-0.5">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Fun Fact</p>
+              <EditableField
+                value={c("funFact", language === "ko" ? "예방적 QA 프로세스를 구현해서 찾은 버그보다 예방한 버그가 더 많아요." : "I've prevented more bugs than I've found by implementing preventive QA processes.")}
+                onSave={save("funFact")}
+                as="p"
+                className="text-gray-600 text-[15px] leading-relaxed"
+              />
+            </div>
           </div>
         </div>
       </div>
