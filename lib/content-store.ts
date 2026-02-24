@@ -24,19 +24,27 @@ export function resetContentCache(): void {
   isCacheInitialized = false
 }
 
+// Extract language from content key (e.g., "about.ko.info_0_q" -> "ko")
+function getLanguageFromKey(key: string): string {
+  const parts = key.split(".")
+  if (parts.length >= 2 && (parts[1] === "ko" || parts[1] === "en")) {
+    return parts[1]
+  }
+  return getCurrentLanguage()
+}
+
 // Initialize content cache from Supabase
 export async function initializeContentCache(): Promise<void> {
   if (isCacheInitialized) return
 
   try {
     const supabase = createClient()
-    const language = getCurrentLanguage()
 
+    // Load ALL content for the user (language is already in the key)
     const { data, error } = await supabase
       .from("portfolio_content")
       .select("content_key, content_value")
       .eq("user_id", USER_ID)
-      .eq("language", language)
 
     if (error) {
       console.error("Error loading content from Supabase:", error)
@@ -80,7 +88,8 @@ export function getOverrides(): Record<string, string> {
 export async function setOverride(key: string, value: string): Promise<void> {
   try {
     const supabase = createClient()
-    const language = getCurrentLanguage()
+    // Extract language from key (e.g., "about.ko.info_0_q" -> "ko")
+    const language = getLanguageFromKey(key)
 
     // Update cache immediately for instant UI feedback
     if (contentCache !== null) {

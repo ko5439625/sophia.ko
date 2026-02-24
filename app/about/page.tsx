@@ -21,8 +21,10 @@ export default function AboutPage() {
   const [aiError, setAiError] = useState("")
 
   useEffect(() => {
-    // Initialize content cache from Supabase
-    initializeContentCache()
+    // Initialize content cache from Supabase, then re-render
+    initializeContentCache().then(() => {
+      forceUpdate(n => n + 1)
+    })
 
     const savedLanguage = localStorage.getItem("language") as "ko" | "en"
     if (savedLanguage) setLanguage(savedLanguage)
