@@ -690,7 +690,7 @@ export default function ExperiencePage() {
         </div>
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200/50 px-6 py-4 space-y-1 animate-[slideDown_0.2s_ease-out]">
+          <div className="md:hidden absolute left-0 right-0 top-full bg-white/95 backdrop-blur-sm border-t border-gray-200/50 shadow-lg px-6 py-4 space-y-1 animate-[slideDown_0.2s_ease-out] z-50">
             <button onClick={() => (window.location.href = "/about")} className="block w-full text-left text-gray-600 hover:text-gray-900 py-2.5 text-sm">About</button>
             <div className="text-blue-600 font-medium py-2.5 text-sm border-l-2 border-blue-600 pl-3">Experience</div>
             <button onClick={() => (window.location.href = "/blog")} className="block w-full text-left text-gray-600 hover:text-gray-900 py-2.5 text-sm">Blog</button>
