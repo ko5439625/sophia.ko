@@ -216,18 +216,18 @@ export default function ExperiencePage() {
     return () => { clearTimeout(timer); observer.disconnect() }
   }, [loading, activeTab])
 
-  // Vision quote typewriter effect
+  // Vision quote typewriter effect (slow & smooth)
   useEffect(() => {
     if (activeTab !== "vision" || loading) return
     setQuoteTypingPos(0)
     let pos = 0
-    let delay = 15
+    let delay = 30
     const interval = setInterval(() => {
       if (delay > 0) { delay--; return }
       pos++
       setQuoteTypingPos(pos)
       if (pos >= 200) clearInterval(interval)
-    }, 40)
+    }, 70)
     return () => clearInterval(interval)
   }, [activeTab, loading])
 
@@ -635,6 +635,10 @@ export default function ExperiencePage() {
         [data-scroll]:nth-child(3) { transition-delay: 0.15s; }
         [data-scroll]:nth-child(4) { transition-delay: 0.2s; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes stepReveal { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes arrowFade { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        .roadmap-step { opacity: 0; animation: stepReveal 0.8s ease-out forwards; }
+        .roadmap-arrow { opacity: 0; animation: arrowFade 0.5s ease-out forwards; }
       `}</style>
       {/* Navigation */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
@@ -970,7 +974,7 @@ export default function ExperiencePage() {
             {activeTab === "projects" && (
               <div className="space-y-12">
                 {/* Career Timeline */}
-                <div>
+                <div data-scroll>
                   <SectionHeader
                     title={language === "ko" ? "커리어 타임라인" : "Career Timeline"}
                     editKey="timelineTitle"
@@ -1052,7 +1056,7 @@ export default function ExperiencePage() {
                   const companyYears = actualTimeline.filter(t => t.company === expandedCompany).map(t => t.year)
 
                   return (
-                    <div>
+                    <div data-scroll>
                       {/* Company header */}
                       <div className={`flex items-center gap-4 mb-6 p-4 rounded-2xl ${color.light} border ${color.border}`}>
                         <div className={`w-3 h-3 ${color.bg} rounded-full`}></div>
@@ -1359,11 +1363,20 @@ export default function ExperiencePage() {
                           color: "from-pink-500 to-pink-600"
                         }
                       ].map((roadmap, i) => (
-                        <div key={i} className="relative">
-                          {/* Circle Marker */}
-                          <div className={`hidden md:flex absolute -top-3 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-gradient-to-br ${roadmap.color} rounded-full border-4 border-white shadow-lg z-10`}></div>
+                        <div key={i} className="relative roadmap-step" style={{ animationDelay: `${i * 0.3}s` }}>
+                          {/* Circle Marker with step number */}
+                          <div className={`hidden md:flex absolute -top-3 left-1/2 transform -translate-x-1/2 w-8 h-8 bg-gradient-to-br ${roadmap.color} rounded-full border-4 border-white shadow-lg z-10 items-center justify-center`}>
+                            <span className="text-white text-[10px] font-bold">{i + 1}</span>
+                          </div>
 
-                          <div className="group relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-xl transition-all duration-300 mt-8 cursor-pointer">
+                          {/* Connector arrow between cards */}
+                          {i < 2 && (
+                            <div className="hidden md:block absolute top-12 -right-4 z-20">
+                              <svg className="w-8 h-8 text-gray-300 roadmap-arrow" style={{ animationDelay: `${i * 0.3 + 0.5}s` }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            </div>
+                          )}
+
+                          <div className={`relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg transition-all duration-300 mt-8`}>
                             {isAdmin && (
                               <button
                                 onClick={() => handleAIImprove(`roadmap_${i}_desc`, c(`roadmap_${i}_desc`, roadmap.description), 'text')}
@@ -1388,21 +1401,18 @@ export default function ExperiencePage() {
                             <div className="text-xs text-gray-500 font-medium mb-2">
                               <EditableField value={c(`roadmap_${i}_phase`, roadmap.phase)} onSave={save(`roadmap_${i}_phase`)} as="span" className="text-gray-500 text-xs" />
                             </div>
-                            <EditableField value={c(`roadmap_${i}_title`, roadmap.title)} onSave={save(`roadmap_${i}_title`)} as="h3" className="text-lg font-semibold text-gray-900 mb-2" />
-                            <p className="text-[11px] text-gray-300 group-hover:opacity-0 group-hover:max-h-0 transition-all duration-300 overflow-hidden">↓ {language === "ko" ? "상세 보기" : "Details"}</p>
-                            <div className="max-h-0 overflow-hidden opacity-0 group-hover:max-h-[500px] group-hover:opacity-100 transition-all duration-500 ease-in-out">
-                              <EditableField value={c(`roadmap_${i}_desc`, roadmap.description)} onSave={save(`roadmap_${i}_desc`)} as="p" className="text-gray-700 text-sm mb-4 leading-relaxed mt-1" multiline />
+                            <EditableField value={c(`roadmap_${i}_title`, roadmap.title)} onSave={save(`roadmap_${i}_title`)} as="h3" className="text-lg font-semibold text-gray-900 mb-3" />
+                            <EditableField value={c(`roadmap_${i}_desc`, roadmap.description)} onSave={save(`roadmap_${i}_desc`)} as="p" className="text-gray-700 text-sm mb-4 leading-relaxed" multiline />
 
-                              <div className="space-y-2">
-                                {roadmap.goals.map((goal, gi) => (
-                                  <div key={gi} className="flex items-start">
-                                    <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    <span className="text-xs text-gray-600">{c(`roadmap_${i}_goal_${gi}`, goal)}</span>
-                                  </div>
-                                ))}
-                              </div>
+                            <div className="space-y-2">
+                              {roadmap.goals.map((goal, gi) => (
+                                <div key={gi} className="flex items-start">
+                                  <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                  </svg>
+                                  <span className="text-xs text-gray-600">{c(`roadmap_${i}_goal_${gi}`, goal)}</span>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         </div>

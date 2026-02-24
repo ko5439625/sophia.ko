@@ -17,6 +17,7 @@ export default function AboutPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { isAdmin, isLoggedIn } = useAdmin()
   const [, forceUpdate] = useState(0)
+  const [contentReady, setContentReady] = useState(false)
   const [aiLoading, setAiLoading] = useState<number | null>(null)
   const [aiError, setAiError] = useState("")
 
@@ -24,6 +25,7 @@ export default function AboutPage() {
     // Initialize content cache from Supabase, then re-render
     initializeContentCache().then(() => {
       forceUpdate(n => n + 1)
+      setContentReady(true)
     })
 
     const savedLanguage = localStorage.getItem("language") as "ko" | "en"
@@ -37,6 +39,25 @@ export default function AboutPage() {
         setCropOffset({ x: data.cropOffsetX, y: data.cropOffsetY })
       }
     })
+  }, [])
+
+  // Scroll entrance animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('about-visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+    )
+    const timer = setTimeout(() => {
+      document.querySelectorAll('[data-about-scroll]').forEach((el) => observer.observe(el))
+    }, 100)
+    return () => { clearTimeout(timer); observer.disconnect() }
   }, [])
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,6 +213,10 @@ export default function AboutPage() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 ${isAdmin ? "pt-10" : ""}`}>
+      <style>{`
+        [data-about-scroll] { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease-out, transform 0.7s ease-out; }
+        [data-about-scroll].about-visible { opacity: 1; transform: translateY(0); }
+      `}</style>
       {/* Navigation */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6">
@@ -218,10 +243,10 @@ export default function AboutPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className={`max-w-5xl mx-auto px-6 py-12 transition-opacity duration-500 ${contentReady ? 'opacity-100' : 'opacity-0'}`}>
 
         {/* Profile Section */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-8 mb-12">
+        <div className="bg-white/60 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-8 mb-12" data-about-scroll>
           <div className="flex flex-col lg:flex-row items-center gap-8">
             <div className="flex flex-col items-center gap-3">
               <div
@@ -352,7 +377,7 @@ export default function AboutPage() {
         </div>
 
         {/* Info Section */}
-        <div className="mb-8">
+        <div className="mb-8" data-about-scroll>
           <div className="flex items-center mb-8">
             <EditableField value={c("sectionTitle", "About")} onSave={save("sectionTitle")} as="h2" className="text-3xl font-semibold text-gray-900 mr-4 tracking-tight" />
             <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
@@ -360,7 +385,7 @@ export default function AboutPage() {
 
           <div className="grid gap-6">
             {defaultInfo.map((item, i) => (
-              <div key={i} className="group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-md hover:bg-white/80 transition-all duration-300">
+              <div key={i} className="group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-md hover:bg-white/80 transition-all duration-300" data-about-scroll style={{ transitionDelay: `${i * 0.1}s` }}>
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors duration-300">
                     <span className="text-xl text-gray-600">Q</span>
@@ -402,7 +427,7 @@ export default function AboutPage() {
         </div>
 
         {/* Fun Fact */}
-        <div className="relative bg-gray-50 rounded-2xl p-8 border border-gray-200/80">
+        <div className="relative bg-gray-50 rounded-2xl p-8 border border-gray-200/80" data-about-scroll>
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 w-10 h-10 bg-white rounded-xl border border-gray-200 flex items-center justify-center shadow-sm">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
