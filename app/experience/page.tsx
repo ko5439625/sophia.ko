@@ -341,6 +341,10 @@ export default function ExperiencePage() {
         data.tools = data.tools.split(",").map((t: string) => t.trim()).filter((t: string) => t)
       }
 
+      // 타임라인(회사) 수정 시 이전 회사명 저장
+      const oldCompanyName = (editingItem && modalType === "timeline") ? editingItem.content?.company : null
+      const newCompanyName = (modalType === "timeline") ? data.company : null
+
       let result
       if (editingItem) {
         console.log("수정 모드: updateExperienceData 호출")
@@ -350,6 +354,23 @@ export default function ExperiencePage() {
         console.log("추가 모드: addExperienceData 호출")
         result = await addExperienceData(language, modalType, data)
         console.log("addExperienceData 결과:", result)
+      }
+
+      // 회사명이 변경된 경우, 해당 회사 소속 프로젝트들의 details.company도 동기화
+      if (oldCompanyName && newCompanyName && oldCompanyName !== newCompanyName) {
+        console.log(`회사명 변경 감지: "${oldCompanyName}" → "${newCompanyName}"`)
+        const affectedProjects = projects.filter(p => p.details?.company === oldCompanyName)
+        console.log(`영향받는 프로젝트 수: ${affectedProjects.length}`)
+        await Promise.all(
+          affectedProjects.map(p =>
+            updateProject(p.id, {
+              details: { ...p.details, company: newCompanyName }
+            })
+          )
+        )
+        // 프로젝트 목록도 새로고침
+        const updatedProjects = await loadProjects(language)
+        setProjects(updatedProjects)
       }
 
       console.log("loadAllExperienceData 호출 시작")
