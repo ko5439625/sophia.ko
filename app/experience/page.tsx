@@ -1125,8 +1125,10 @@ export default function ExperiencePage() {
             {activeTab === "vision" && (
               <div className="space-y-12">
                 {/* Philosophy Quote */}
-                <div className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-12 border border-gray-200/50 overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-100/30 to-purple-100/30 rounded-full blur-3xl"></div>
+                <div className="relative rounded-3xl overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800"></div>
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                  <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
                   {isAdmin && (
                     <div className="absolute top-4 right-4 z-20">
                       <button
@@ -1153,22 +1155,22 @@ export default function ExperiencePage() {
                       </button>
                     </div>
                   )}
-                  <div className="relative text-center">
-                    <div className="inline-block mb-6">
-                      <svg className="w-12 h-12 text-blue-400 opacity-30" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                      </svg>
-                    </div>
-                    <blockquote className="text-3xl font-medium text-gray-800 mb-6 leading-relaxed">
+                  <div className="relative px-8 py-16 md:px-16 md:py-20 text-center">
+                    <div className="w-12 h-[2px] bg-gradient-to-r from-blue-400 to-purple-400 mx-auto mb-10"></div>
+                    <blockquote className="mb-8 max-w-3xl mx-auto">
                       <EditableField
                         value={c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention")}
                         onSave={save("visionQuote")}
                         as="span"
-                        className="text-3xl font-medium text-gray-800"
+                        className="text-2xl md:text-4xl font-extralight text-white/90 leading-snug tracking-tight italic"
                         multiline
                       />
                     </blockquote>
-                    <EditableField value={c("visionAuthor", "- Sophia Ko")} onSave={save("visionAuthor")} as="p" className="text-gray-500 font-medium" />
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-6 h-[1px] bg-white/30"></div>
+                      <EditableField value={c("visionAuthor", "Sophia Ko")} onSave={save("visionAuthor")} as="p" className="text-sm font-light text-white/50 uppercase tracking-[0.2em]" />
+                      <div className="w-6 h-[1px] bg-white/30"></div>
+                    </div>
                   </div>
                 </div>
 
