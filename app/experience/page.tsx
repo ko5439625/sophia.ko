@@ -1160,7 +1160,7 @@ export default function ExperiencePage() {
                         value={c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention")}
                         onSave={save("visionQuote")}
                         as="span"
-                        className="text-2xl md:text-3xl font-bold text-gray-400 leading-relaxed"
+                        className="text-2xl md:text-3xl font-bold text-gray-700 leading-relaxed"
                         multiline
                       />
                     </blockquote>
