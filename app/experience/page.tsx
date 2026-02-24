@@ -1105,21 +1105,21 @@ export default function ExperiencePage() {
                     {[
                       {
                         icon: "🎯",
-                        title: language === "ko" ? "사용자 중심" : "User-Centric",
-                        description: language === "ko" ? "모든 결정의 중심에는 사용자가 있습니다" : "Users are at the center of every decision",
-                        impact: language === "ko" ? "95% 사용자 만족도 달성" : "95% user satisfaction achieved"
+                        title: language === "ko" ? "비용-효율 최적화" : "Cost-Efficiency Optimization",
+                        description: language === "ko" ? "\"완벽한 품질\"이 아닌 적정 품질에서 적시 출시가 수익 극대화 전략. 반복 검증을 자동화하여 QA 리소스를 실제 검증 활동에 집중합니다." : "Not \"perfect quality\" but timely release at optimal quality maximizes value. Automate repetitive verification to focus QA resources on real testing.",
+                        impact: language === "ko" ? "반복 검증 90% 자동화 달성" : "90% automation of repetitive verification"
                       },
                       {
                         icon: "📊",
-                        title: language === "ko" ? "데이터 기반" : "Data-Driven",
-                        description: language === "ko" ? "명확한 데이터로 의사결정을 내립니다" : "Make decisions based on clear data",
-                        impact: language === "ko" ? "의사결정 속도 60% 향상" : "60% faster decision making"
+                        title: language === "ko" ? "불편하면 직접 만든다" : "Build It If It's Missing",
+                        description: language === "ko" ? "도구가 없으면 직접 개발합니다. Excel Diff Viewer, JIRA 미러링, 확률 검증, 위키 자동화까지 — 반복되는 비효율을 발견하면 직접 도구를 만들어 해결합니다." : "If there's no tool, build it. From Excel Diff Viewer to JIRA mirroring, probability verification, and wiki automation — when I find recurring inefficiency, I build a tool to solve it.",
+                        impact: language === "ko" ? "7개+ QA 도구 직접 개발" : "7+ QA tools self-developed"
                       },
                       {
                         icon: "🛡️",
-                        title: language === "ko" ? "예방적 품질" : "Preventive Quality",
-                        description: language === "ko" ? "문제를 사전에 예방합니다" : "Prevent problems before they occur",
-                        impact: language === "ko" ? "프로덕션 버그 80% 감소" : "80% reduction in production bugs"
+                        title: language === "ko" ? "AI × QA 통합" : "AI × QA Integration",
+                        description: language === "ko" ? "RAG 기반 버그 자동작성, 확률 검증 자동화, MCP 기반 위키 자동 업로드 등 AI를 QA 프로세스 전반에 적용하여 실무에서 동작하는 도구들을 만들어왔습니다." : "Applied AI across QA processes — RAG-based bug auto-writing, probability verification automation, MCP-based wiki auto-upload — building tools that work in real practice.",
+                        impact: language === "ko" ? "AI 활용 QA 도구 실무 적용 중" : "AI-powered QA tools in production use"
                       }
                     ].map((value, i) => (
                       <div key={i} className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
@@ -1165,25 +1165,25 @@ export default function ExperiencePage() {
                         {
                           timeline: "2025",
                           phase: language === "ko" ? "1단계" : "Phase 1",
-                          title: language === "ko" ? "AI 기반 QA 도구 개발" : "AI-Powered QA Tool Development",
-                          description: language === "ko" ? "머신러닝을 활용한 자동 테스트 케이스 생성 도구를 개발하여 테스트 효율성을 극대화합니다." : "Develop automated test case generation tools using machine learning to maximize testing efficiency.",
-                          goals: language === "ko" ? ["테스트 케이스 작성 시간 70% 단축", "AI 기반 버그 예측 모델 구축", "자동화 커버리지 95% 달성"] : ["70% reduction in test case writing time", "Build AI-based bug prediction model", "Achieve 95% automation coverage"],
+                          title: language === "ko" ? "AI 기반 QA 도구 통합" : "AI-Powered QA Tool Integration",
+                          description: language === "ko" ? "이미 개발한 도구들(JIRA 미러링, Excel Diff, 확률 검증 등)을 AI로 연결하고, 도구 간 컨텍스트를 공유하는 통합 체계를 구축합니다." : "Connect existing tools (JIRA mirroring, Excel Diff, probability verification) with AI, building an integrated system that shares context between tools.",
+                          goals: language === "ko" ? ["기존 도구 간 AI 컨텍스트 공유 체계 구축", "Diff→영향도 판단→테스트 제안 자동 연결", "도구 통합으로 검증 효율 추가 30% 향상"] : ["Build AI context sharing between existing tools", "Auto-chain: Diff→impact analysis→test suggestion", "30% additional efficiency through tool integration"],
                           color: "from-blue-500 to-blue-600"
                         },
                         {
                           timeline: "2026",
                           phase: language === "ko" ? "2단계" : "Phase 2",
-                          title: language === "ko" ? "QA 교육 플랫폼 구축" : "QA Education Platform",
-                          description: language === "ko" ? "주니어 QA 엔지니어들을 위한 체계적인 교육 플랫폼을 만들어 업계 전체의 품질 수준을 높입니다." : "Create systematic education platform for junior QA engineers to raise industry-wide quality standards.",
-                          goals: language === "ko" ? ["온라인 QA 교육 과정 20개 개발", "1,000명 이상 교육생 배출", "업계 QA 역량 전반적 향상"] : ["Develop 20 online QA courses", "Train 1,000+ students", "Overall improvement in industry QA capabilities"],
+                          title: language === "ko" ? "QA 자동화 파이프라인" : "QA Automation Pipeline",
+                          description: language === "ko" ? "버그 발견→패턴 분석→등록→리포트→문서화까지 엔드투엔드 자동 파이프라인을 구축합니다. 기획서 변경 시 테스트 케이스 자동 업데이트 체계를 만듭니다." : "Build end-to-end automation pipeline from bug detection→pattern analysis→registration→report→documentation. Create auto-update system for test cases when specs change.",
+                          goals: language === "ko" ? ["버그 발견→분석→등록→리포트 엔드투엔드 자동화", "기획서 변경 시 테스트 케이스 자동 업데이트", "커버리지 부족 영역 AI 자동 제안"] : ["End-to-end: bug detection→analysis→reporting automation", "Auto-update test cases on spec changes", "AI auto-suggests under-covered areas"],
                           color: "from-purple-500 to-purple-600"
                         },
                         {
                           timeline: "2027+",
                           phase: language === "ko" ? "3단계" : "Phase 3",
-                          title: language === "ko" ? "품질 우선 문화 전파" : "Quality-First Culture Evangelism",
-                          description: language === "ko" ? "기업 문화 차원에서 품질을 최우선으로 생각하는 조직을 만드는 컨설팅을 제공합니다." : "Provide consulting to create organizations that prioritize quality at the corporate culture level.",
-                          goals: language === "ko" ? ["품질 우선 기업 문화 확산", "10개 이상 기업 컨설팅", "QA 커뮤니티 활성화"] : ["Spread quality-first corporate culture", "Consult 10+ companies", "Activate QA community"],
+                          title: language === "ko" ? "AI 자율 QA 시스템" : "AI Autonomous QA System",
+                          description: language === "ko" ? "AI가 '검증해야 할 것'을 스스로 판단하고, QA 엔지니어가 핵심 판단에 집중할 수 있는 환경을 만듭니다. 프로젝트 투입 시 장르/규모별 QA 체계를 AI가 자동 설계합니다." : "Build an environment where AI autonomously decides what to verify, allowing QA engineers to focus on critical decisions. AI auto-designs QA frameworks by genre/scale on project entry.",
+                          goals: language === "ko" ? ["AI가 검증 대상을 스스로 판단하는 자율 QA", "장르/규모별 QA 체계 AI 자동 설계", "QA 엔지니어가 핵심 판단에만 집중하는 환경"] : ["Autonomous QA where AI decides what to verify", "AI auto-designs QA framework by genre/scale", "Environment where QA engineers focus on critical decisions"],
                           color: "from-pink-500 to-pink-600"
                         }
                       ].map((roadmap, i) => (
@@ -1225,7 +1225,7 @@ export default function ExperiencePage() {
                                   <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                   </svg>
-                                  <span className="text-xs text-gray-600">{goal}</span>
+                                  <span className="text-xs text-gray-600">{c(`roadmap_${i}_goal_${gi}`, goal)}</span>
                                 </div>
                               ))}
                             </div>
@@ -1243,27 +1243,27 @@ export default function ExperiencePage() {
                     {[
                       {
                         icon: "🤖",
-                        title: language === "ko" ? "AI/ML 기반 테스팅" : "AI/ML-based Testing",
-                        description: language === "ko" ? "인공지능과 머신러닝을 활용한 지능형 테스트 자동화 연구" : "Research on intelligent test automation using AI and machine learning",
-                        topics: language === "ko" ? ["자동 테스트 케이스 생성", "버그 예측 모델", "이상 탐지 시스템"] : ["Automated test case generation", "Bug prediction models", "Anomaly detection systems"]
+                        title: language === "ko" ? "AI 기반 버그 예측 & 사전 감지" : "AI Bug Prediction & Early Detection",
+                        description: language === "ko" ? "3,000건 버그 패턴 학습 경험을 발전시켜, 코드/테이블 변경 시 영향 범위를 자동 분석하고 잠재 버그를 예측하는 시스템 연구" : "Evolving 3,000 bug pattern learning experience to auto-analyze impact scope on code/table changes and predict potential bugs",
+                        topics: language === "ko" ? ["코드/테이블 변경 시 영향 범위 자동 분석", "3,000건 패턴 학습 기반 잠재 버그 예측", "변경 리스크 자동 등급화 시스템"] : ["Auto-analyze impact scope on code/table changes", "Predict bugs from 3,000 pattern learning", "Automatic change risk grading system"]
                       },
                       {
                         icon: "🔬",
-                        title: language === "ko" ? "성능 최적화" : "Performance Optimization",
-                        description: language === "ko" ? "대규모 시스템의 성능 테스트 및 병목 지점 분석 기법 연구" : "Research on performance testing and bottleneck analysis for large-scale systems",
-                        topics: language === "ko" ? ["분산 부하 테스트", "실시간 성능 모니터링", "자동 성능 회귀 감지"] : ["Distributed load testing", "Real-time performance monitoring", "Automated performance regression detection"]
+                        title: language === "ko" ? "실시간 확률 모니터링" : "Real-time Probability Monitoring",
+                        description: language === "ko" ? "확률 검증 자동화 경험을 발전시켜, 라이브 환경에서 확률 이상을 실시간으로 탐지하고 자동 알림하는 모니터링 시스템 연구" : "Evolving probability verification automation to real-time anomaly detection and auto-alerting monitoring system in live environments",
+                        topics: language === "ko" ? ["라이브 환경 확률 이상 실시간 탐지", "BM 테이블 변경 자동 검증 알림", "확률형 아이템 통계적 유의성 검증"] : ["Real-time probability anomaly detection in live env", "Auto-verify alerts on BM table changes", "Statistical significance testing for gacha items"]
                       },
                       {
                         icon: "🔐",
-                        title: language === "ko" ? "보안 테스팅" : "Security Testing",
-                        description: language === "ko" ? "최신 보안 위협에 대응하는 자동화된 보안 테스트 프레임워크 개발" : "Development of automated security testing frameworks for emerging threats",
-                        topics: language === "ko" ? ["OWASP Top 10 자동 검증", "침투 테스트 자동화", "취약점 스캐닝"] : ["Automated OWASP Top 10 verification", "Penetration testing automation", "Vulnerability scanning"]
+                        title: language === "ko" ? "QA 도구 AI 고도화" : "AI Enhancement of QA Tools",
+                        description: language === "ko" ? "개별 QA 도구들을 AI로 연결하여, 테이블 변경 시 자동 영향도 분석, 기획 의도 vs 실제 데이터 AI 자동 검증 등 도구 간 시너지 창출" : "Connect individual QA tools with AI for auto-impact analysis on table changes, AI auto-verification of design intent vs actual data, creating synergy between tools",
+                        topics: language === "ko" ? ["테이블 변경 시 AI 영향도 자동 분석", "기획 의도 vs 실제 데이터 AI 검증", "도구 간 시너지로 검증 프로세스 혁신"] : ["AI auto-impact analysis on table changes", "AI verify: design intent vs actual data", "Innovate verification through tool synergy"]
                       },
                       {
                         icon: "📱",
-                        title: language === "ko" ? "크로스 플랫폼 테스팅" : "Cross-Platform Testing",
-                        description: language === "ko" ? "다양한 플랫폼과 디바이스에서 일관된 품질을 보장하는 테스트 전략 연구" : "Research on test strategies ensuring consistent quality across platforms and devices",
-                        topics: language === "ko" ? ["통합 테스트 프레임워크", "클라우드 기반 디바이스 팜", "시각적 회귀 테스트"] : ["Unified testing framework", "Cloud-based device farm", "Visual regression testing"]
+                        title: language === "ko" ? "AI 기반 QA 프로세스 표준화" : "AI-based QA Process Standardization",
+                        description: language === "ko" ? "SET팀 협업 경험을 확장하여, 프로젝트 신규 투입 시 장르/규모/플랫폼에 맞는 QA 프로세스, 체크리스트, 도구 세팅을 AI가 자동 추천하는 체계 연구" : "Expanding SET team collaboration experience to research AI auto-recommendation of QA processes, checklists, and tool setups by genre/scale/platform on new project entry",
+                        topics: language === "ko" ? ["장르/규모/플랫폼별 QA 프로세스 AI 추천", "체크리스트 & 도구 세팅 자동 생성", "신규 프로젝트 온보딩 시간 대폭 단축"] : ["AI auto-recommend QA process by genre/scale/platform", "Auto-generate checklists & tool setups", "Drastically reduce new project onboarding time"]
                       }
                     ].map((area, i) => (
                       <div key={i} className="relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg hover:border-blue-200 transition-all duration-300">
@@ -1296,7 +1296,7 @@ export default function ExperiencePage() {
                           {area.topics.map((topic, ti) => (
                             <div key={ti} className="flex items-center">
                               <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                              <span className="text-xs text-gray-600">{topic}</span>
+                              <span className="text-xs text-gray-600">{c(`rd_${i}_topic_${ti}`, topic)}</span>
                             </div>
                           ))}
                         </div>
