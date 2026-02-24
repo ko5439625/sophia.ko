@@ -806,7 +806,7 @@ export default function BlogPage() {
 
       {/* Footer */}
       <div className="text-center py-8 text-sm text-gray-400">
-        Senior QA Engineer - 5 {language === "ko" ? "년 경력" : "Years Experience"}
+        — QA Engineer Sophia Ko —
       </div>
     </div>
   )

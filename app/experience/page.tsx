@@ -95,6 +95,10 @@ export default function ExperiencePage() {
   const [aiLoading, setAiLoading] = useState<string | null>(null)
   const [aiError, setAiError] = useState("")
 
+  // UI animation states
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [quoteTypingPos, setQuoteTypingPos] = useState(0)
+
   // Footer data
   const [footerContact, setFooterContact] = useState<FooterItem[]>([])
   const [footerLinks, setFooterLinks] = useState<FooterItem[]>([])
@@ -191,6 +195,41 @@ export default function ExperiencePage() {
       }
     }
   }, [timelineData])
+
+  // Scroll entrance animation
+  useEffect(() => {
+    if (loading) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('scroll-visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+    )
+    const timer = setTimeout(() => {
+      document.querySelectorAll('[data-scroll]').forEach((el) => observer.observe(el))
+    }, 100)
+    return () => { clearTimeout(timer); observer.disconnect() }
+  }, [loading, activeTab])
+
+  // Vision quote typewriter effect
+  useEffect(() => {
+    if (activeTab !== "vision" || loading) return
+    setQuoteTypingPos(0)
+    let pos = 0
+    let delay = 15
+    const interval = setInterval(() => {
+      if (delay > 0) { delay--; return }
+      pos++
+      setQuoteTypingPos(pos)
+      if (pos >= 200) clearInterval(interval)
+    }, 40)
+    return () => clearInterval(interval)
+  }, [activeTab, loading])
 
   const handleLanguageChange = (newLanguage: "ko" | "en") => {
     setLanguage(newLanguage)
@@ -589,6 +628,14 @@ export default function ExperiencePage() {
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 ${isAdmin ? "pt-10" : ""}`}>
+      <style>{`
+        [data-scroll] { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease-out, transform 0.7s ease-out; }
+        [data-scroll].scroll-visible { opacity: 1; transform: translateY(0); }
+        [data-scroll]:nth-child(2) { transition-delay: 0.1s; }
+        [data-scroll]:nth-child(3) { transition-delay: 0.15s; }
+        [data-scroll]:nth-child(4) { transition-delay: 0.2s; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
       {/* Navigation */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6">
@@ -597,7 +644,16 @@ export default function ExperiencePage() {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               {language === "ko" ? "검색으로 돌아가기" : "Back to Search"}
             </button>
-            <div className="flex items-center space-x-8">
+            {/* Hamburger button (mobile) */}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen
+                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                }
+              </svg>
+            </button>
+            <div className="hidden md:flex items-center space-x-8">
               <div className="flex space-x-8">
                 <button onClick={() => (window.location.href = "/about")} className="text-gray-600 hover:text-gray-900 pb-4 transition-colors">About</button>
                 <div className="text-blue-600 font-medium border-b-2 border-blue-600 pb-4">Experience</div>
@@ -628,6 +684,24 @@ export default function ExperiencePage() {
             </div>
           </div>
         </div>
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200/50 px-6 py-4 space-y-1 animate-[slideDown_0.2s_ease-out]">
+            <button onClick={() => (window.location.href = "/about")} className="block w-full text-left text-gray-600 hover:text-gray-900 py-2.5 text-sm">About</button>
+            <div className="text-blue-600 font-medium py-2.5 text-sm border-l-2 border-blue-600 pl-3">Experience</div>
+            <button onClick={() => (window.location.href = "/blog")} className="block w-full text-left text-gray-600 hover:text-gray-900 py-2.5 text-sm">Blog</button>
+            <div className="flex items-center space-x-3 pt-3 border-t border-gray-100 mt-2">
+              <span className={`text-sm ${language === "ko" ? "text-gray-900 font-medium" : "text-gray-500"}`}>한국어</span>
+              <button
+                onClick={() => handleLanguageChange(language === "ko" ? "en" : "ko")}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${language === "en" ? "bg-blue-600" : "bg-gray-300"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${language === "en" ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+              <span className={`text-sm ${language === "en" ? "text-gray-900 font-medium" : "text-gray-500"}`}>EN</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -668,7 +742,7 @@ export default function ExperiencePage() {
             {activeTab === "overview" && (
               <div className="space-y-16">
                 {/* Summary */}
-                <div className="relative overflow-hidden">
+                <div className="relative overflow-hidden" data-scroll>
                   <div className="bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-3xl p-8 relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/30 rounded-full -translate-y-8 translate-x-8"></div>
                     {isAdmin && (
@@ -703,7 +777,7 @@ export default function ExperiencePage() {
                 </div>
 
                 {/* Key Highlights */}
-                <div>
+                <div data-scroll>
                   <SectionHeader
                     title={language === "ko" ? "핵심 강점" : "Key Highlights"}
                     editKey="highlightsTitle"
@@ -748,7 +822,7 @@ export default function ExperiencePage() {
                 </div>
 
                 {/* Key Performance Metrics */}
-                <div>
+                <div data-scroll>
                   <SectionHeader
                     title={language === "ko" ? "핵심 성과" : "Key Metrics"}
                     editKey="metricsTitle"
@@ -790,7 +864,7 @@ export default function ExperiencePage() {
                 </div>
 
                 {/* Tech Stack & Certifications */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8" data-scroll>
                   <div>
                     <SectionHeader
                       title={language === "ko" ? "기술 스택" : "Tech Stack"}
@@ -1065,7 +1139,7 @@ export default function ExperiencePage() {
                             </div>
 
                             {selectedProject === project.id && (
-                              <div className={`${color.light} rounded-2xl p-6 border ${color.border} shadow-sm`}>
+                              <div className={`${color.light} rounded-2xl p-6 border ${color.border} shadow-sm animate-[slideDown_0.3s_ease-out]`}>
                                 {project.background && (
                                   <div className="mb-6">
                                     <h5 className="font-semibold text-gray-900 mb-2 text-sm">{language === "ko" ? "배경" : "Background"}</h5>
@@ -1135,7 +1209,7 @@ export default function ExperiencePage() {
             {activeTab === "vision" && (
               <div className="space-y-16">
                 {/* Philosophy Quote */}
-                <div className="relative bg-white rounded-2xl p-12 md:p-16 border border-gray-100 shadow-sm overflow-hidden">
+                <div className="relative bg-white rounded-2xl p-12 md:p-16 border border-gray-100 shadow-sm overflow-hidden" data-scroll>
                   <div className="absolute top-6 left-8 text-[120px] leading-none font-serif text-gray-200 select-none pointer-events-none">&ldquo;</div>
                   <div className="absolute bottom-2 right-8 text-[120px] leading-none font-serif text-gray-200 select-none pointer-events-none">&rdquo;</div>
                   {isAdmin && (
@@ -1166,13 +1240,23 @@ export default function ExperiencePage() {
                   )}
                   <div className="relative text-center py-4">
                     <blockquote className="mb-6 max-w-3xl mx-auto">
-                      <EditableField
-                        value={c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention")}
-                        onSave={save("visionQuote")}
-                        as="span"
-                        className="text-2xl md:text-3xl font-bold text-gray-700 leading-relaxed"
-                        multiline
-                      />
+                      {isAdmin ? (
+                        <EditableField
+                          value={c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention")}
+                          onSave={save("visionQuote")}
+                          as="span"
+                          className="text-2xl md:text-3xl font-bold text-gray-700 leading-relaxed"
+                          multiline
+                        />
+                      ) : (() => {
+                        const fullQuote = c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention")
+                        return (
+                          <span className="text-2xl md:text-3xl font-bold text-gray-700 leading-relaxed">
+                            {fullQuote.slice(0, quoteTypingPos)}
+                            {quoteTypingPos < fullQuote.length && <span className="animate-pulse text-gray-400 ml-0.5">|</span>}
+                          </span>
+                        )
+                      })()}
                     </blockquote>
                     <div className="flex items-center justify-center gap-3">
                       <div className="w-8 h-[1px] bg-blue-300"></div>
@@ -1183,7 +1267,7 @@ export default function ExperiencePage() {
                 </div>
 
                 {/* Value Cards */}
-                <div>
+                <div data-scroll>
                   <SectionHeader title={language === "ko" ? "핵심 가치" : "Core Values"} editKey="valuesTitle" />
                   <div className="grid md:grid-cols-3 gap-8">
                     {[
@@ -1242,7 +1326,7 @@ export default function ExperiencePage() {
                 </div>
 
                 {/* 3-Stage Roadmap */}
-                <div>
+                <div data-scroll>
                   <SectionHeader title={language === "ko" ? "비전 로드맵" : "Vision Roadmap"} editKey="roadmapTitle" />
                   <div className="relative">
                     {/* Timeline Line */}
@@ -1279,7 +1363,7 @@ export default function ExperiencePage() {
                           {/* Circle Marker */}
                           <div className={`hidden md:flex absolute -top-3 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-gradient-to-br ${roadmap.color} rounded-full border-4 border-white shadow-lg z-10`}></div>
 
-                          <div className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-xl transition-all duration-300 mt-8">
+                          <div className="group relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-xl transition-all duration-300 mt-8 cursor-pointer">
                             {isAdmin && (
                               <button
                                 onClick={() => handleAIImprove(`roadmap_${i}_desc`, c(`roadmap_${i}_desc`, roadmap.description), 'text')}
@@ -1304,18 +1388,21 @@ export default function ExperiencePage() {
                             <div className="text-xs text-gray-500 font-medium mb-2">
                               <EditableField value={c(`roadmap_${i}_phase`, roadmap.phase)} onSave={save(`roadmap_${i}_phase`)} as="span" className="text-gray-500 text-xs" />
                             </div>
-                            <EditableField value={c(`roadmap_${i}_title`, roadmap.title)} onSave={save(`roadmap_${i}_title`)} as="h3" className="text-lg font-semibold text-gray-900 mb-3" />
-                            <EditableField value={c(`roadmap_${i}_desc`, roadmap.description)} onSave={save(`roadmap_${i}_desc`)} as="p" className="text-gray-700 text-sm mb-4 leading-relaxed" multiline />
+                            <EditableField value={c(`roadmap_${i}_title`, roadmap.title)} onSave={save(`roadmap_${i}_title`)} as="h3" className="text-lg font-semibold text-gray-900 mb-2" />
+                            <p className="text-[11px] text-gray-300 group-hover:opacity-0 group-hover:max-h-0 transition-all duration-300 overflow-hidden">↓ {language === "ko" ? "상세 보기" : "Details"}</p>
+                            <div className="max-h-0 overflow-hidden opacity-0 group-hover:max-h-[500px] group-hover:opacity-100 transition-all duration-500 ease-in-out">
+                              <EditableField value={c(`roadmap_${i}_desc`, roadmap.description)} onSave={save(`roadmap_${i}_desc`)} as="p" className="text-gray-700 text-sm mb-4 leading-relaxed mt-1" multiline />
 
-                            <div className="space-y-2">
-                              {roadmap.goals.map((goal, gi) => (
-                                <div key={gi} className="flex items-start">
-                                  <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                  </svg>
-                                  <span className="text-xs text-gray-600">{c(`roadmap_${i}_goal_${gi}`, goal)}</span>
-                                </div>
-                              ))}
+                              <div className="space-y-2">
+                                {roadmap.goals.map((goal, gi) => (
+                                  <div key={gi} className="flex items-start">
+                                    <svg className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="text-xs text-gray-600">{c(`roadmap_${i}_goal_${gi}`, goal)}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1325,7 +1412,7 @@ export default function ExperiencePage() {
                 </div>
 
                 {/* R&D Interest Areas */}
-                <div>
+                <div data-scroll>
                   <SectionHeader title={language === "ko" ? "R&D 관심 분야" : "R&D Interest Areas"} editKey="rdTitle" />
                   <div className="grid md:grid-cols-2 gap-8">
                     {[
