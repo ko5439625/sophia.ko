@@ -87,6 +87,7 @@ export default function ExperiencePage() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
 
+  // expandedCompany는 이제 타임라인 항목의 ID를 저장 (회사명 대신)
   // Drag & Drop states (admin only)
   const [draggedProject, setDraggedProject] = useState<Project | null>(null)
   const [dragOverCompany, setDragOverCompany] = useState<string | null>(null)
@@ -184,14 +185,23 @@ export default function ExperiencePage() {
     loadAllExperienceData(language)
   }, [language])
 
-  // Auto-select the latest company when timeline data loads
+  // 월 단위까지 고려한 날짜 파싱 (예: "2023.12", "2024.02~2024.05", "2017.09-2020.05")
+  const parseYearMonth = (yearStr: string): number => {
+    if (!yearStr) return 0
+    // 시작 날짜만 추출 (첫 번째 숫자 부분)
+    const match = yearStr.match(/(\d{4})(?:\.(\d{1,2}))?/)
+    if (!match) return parseInt(yearStr) * 100 || 0
+    const year = parseInt(match[1])
+    const month = match[2] ? parseInt(match[2]) : 1
+    return year * 100 + month
+  }
+
+  // Auto-select the latest timeline item when timeline data loads
   useEffect(() => {
     if (timelineData.length > 0 && expandedCompany === null) {
-      const sorted = [...timelineData].sort((a, b) => parseInt(a.content?.year || '0') - parseInt(b.content?.year || '0'))
-      const timeline = sorted.map(t => t.content)
-      const companyList = [...new Set(timeline.map((t: Record<string, string>) => t.company))]
-      if (companyList.length > 0) {
-        setExpandedCompany(companyList[companyList.length - 1] as string)
+      const sorted = [...timelineData].sort((a, b) => parseYearMonth(a.content?.year || '0') - parseYearMonth(b.content?.year || '0'))
+      if (sorted.length > 0) {
+        setExpandedCompany(sorted[sorted.length - 1].id)
       }
     }
   }, [timelineData])
@@ -341,10 +351,6 @@ export default function ExperiencePage() {
         data.tools = data.tools.split(",").map((t: string) => t.trim()).filter((t: string) => t)
       }
 
-      // 타임라인(회사) 수정 시 이전 회사명 저장
-      const oldCompanyName = (editingItem && modalType === "timeline") ? editingItem.content?.company : null
-      const newCompanyName = (modalType === "timeline") ? data.company : null
-
       let result
       if (editingItem) {
         console.log("수정 모드: updateExperienceData 호출")
@@ -354,23 +360,6 @@ export default function ExperiencePage() {
         console.log("추가 모드: addExperienceData 호출")
         result = await addExperienceData(language, modalType, data)
         console.log("addExperienceData 결과:", result)
-      }
-
-      // 회사명이 변경된 경우, 해당 회사 소속 프로젝트들의 details.company도 동기화
-      if (oldCompanyName && newCompanyName && oldCompanyName !== newCompanyName) {
-        console.log(`회사명 변경 감지: "${oldCompanyName}" → "${newCompanyName}"`)
-        const affectedProjects = projects.filter(p => p.details?.company === oldCompanyName)
-        console.log(`영향받는 프로젝트 수: ${affectedProjects.length}`)
-        await Promise.all(
-          affectedProjects.map(p =>
-            updateProject(p.id, {
-              details: { ...p.details, company: newCompanyName }
-            })
-          )
-        )
-        // 프로젝트 목록도 새로고침
-        const updatedProjects = await loadProjects(language)
-        setProjects(updatedProjects)
       }
 
       console.log("loadAllExperienceData 호출 시작")
@@ -403,8 +392,10 @@ export default function ExperiencePage() {
     setShowAddModal(true)
   }
 
-  const handleAddProject = (company: string) => {
-    setSelectedCompany(company)
+  const handleAddProject = (timelineId: string) => {
+    // timelineId에서 회사명 찾기
+    const timelineItem = timelineData.find(t => t.id === timelineId)
+    setSelectedCompany(timelineItem?.content?.company || "")
     setShowProjectModal(true)
   }
 
@@ -426,6 +417,10 @@ export default function ExperiencePage() {
           ...(editingProject.details || {}),
           ...projectData.details
         }
+        // timeline_id 유지
+        if (!mergedDetails.timeline_id && editingProject.details?.timeline_id) {
+          mergedDetails.timeline_id = editingProject.details.timeline_id
+        }
         await updateProject(editingProject.id, {
           title: projectData.title,
           overview: projectData.overview,
@@ -435,8 +430,9 @@ export default function ExperiencePage() {
         })
         console.log("프로젝트 수정 완료")
       } else {
-        // Add new project
+        // Add new project - expandedCompany가 timeline_id
         const projectId = `proj-${Date.now()}`
+        const details = { ...(projectData.details || {}), timeline_id: expandedCompany }
         await addProject(language, {
           project_id: projectId,
           title: projectData.title,
@@ -444,7 +440,7 @@ export default function ExperiencePage() {
           overview: projectData.overview,
           background: projectData.background,
           tech_stack: projectData.tech_stack,
-          details: projectData.details || {}
+          details
         })
         console.log("프로젝트 추가 완료")
       }
@@ -454,11 +450,7 @@ export default function ExperiencePage() {
       console.log("리로드된 프로젝트:", updatedProjects)
       setProjects(updatedProjects)
 
-      // Update expandedCompany if company name changed
-      const newCompany = projectData.details?.company
-      if (newCompany && newCompany !== expandedCompany) {
-        setExpandedCompany(newCompany)
-      }
+      // expandedCompany는 이미 timeline_id이므로 유지
 
       setShowProjectModal(false)
       setSelectedCompany("")
@@ -507,35 +499,38 @@ export default function ExperiencePage() {
     setDragOverCompany(null)
   }
 
-  const handleDragOverTimeline = (e: React.DragEvent, company: string) => {
+  const handleDragOverTimeline = (e: React.DragEvent, timelineId: string) => {
     e.preventDefault()
     e.dataTransfer.dropEffect = "move"
-    setDragOverCompany(company)
+    setDragOverCompany(timelineId)
   }
 
   const handleDragLeaveTimeline = () => {
     setDragOverCompany(null)
   }
 
-  const handleDropOnTimeline = async (e: React.DragEvent, targetCompany: string) => {
+  const handleDropOnTimeline = async (e: React.DragEvent, targetTimelineId: string) => {
     e.preventDefault()
     setDragOverCompany(null)
 
     if (!draggedProject) return
-    const currentCompany = draggedProject.details?.company
-    if (currentCompany === targetCompany) {
+    const currentTimelineId = draggedProject.details?.timeline_id
+    if (currentTimelineId === targetTimelineId) {
       setDraggedProject(null)
       return
     }
 
     try {
-      const updatedDetails = { ...(draggedProject.details || {}), company: targetCompany }
+      // 타겟 타임라인의 회사명 가져오기
+      const targetTimeline = timelineData.find(t => t.id === targetTimelineId)
+      const targetCompany = targetTimeline?.content?.company || ""
+      const updatedDetails = { ...(draggedProject.details || {}), timeline_id: targetTimelineId, company: targetCompany }
       await updateProject(draggedProject.id, { details: updatedDetails })
 
       // Reload projects
       const updatedProjects = await loadProjects(language)
       setProjects(updatedProjects)
-      setExpandedCompany(targetCompany)
+      setExpandedCompany(targetTimelineId)
       setSelectedProject(null)
     } catch (error) {
       console.error("Error moving project:", error)
@@ -600,52 +595,42 @@ export default function ExperiencePage() {
     { bg: "bg-amber-600", light: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
   ]
 
-  // Always use Supabase data (no hardcoded fallback), sorted by year ascending
-  const actualTimeline = [...timelineData].sort((a, b) => {
-    const yearA = parseInt(a.content?.year || '0')
-    const yearB = parseInt(b.content?.year || '0')
-    return yearA - yearB
-  }).map(t => t.content)
-
-  console.log("=== Timeline Data Debug ===")
-  console.log("timelineData:", timelineData)
-  console.log("actualTimeline:", actualTimeline)
-
-  const companies = [...new Set(actualTimeline.map(t => t.company))]
-  console.log("companies:", companies)
-
-  const companyColorMap: Record<string, number> = {}
-  companies.forEach((co, i) => { companyColorMap[co] = i % timelineColors.length })
-
-  // Group projects by company
-  const grouped: Record<string, Project[]> = {}
-  companies.forEach(company => { grouped[company] = [] })
-
-  console.log("=== Grouping Projects ===")
-  console.log("qaProjects:", qaProjects)
-
-  qaProjects.forEach(p => {
-    // First try to use company from details
-    let key = p.details?.company
-
-    // If no company in details, try to match by year
-    if (!key) {
-      const year = p.details?.period?.toString().slice(0, 4) || "2024"
-      const matchedCompany = actualTimeline.find(t => t.year === year)?.company
-      key = matchedCompany || companies[companies.length - 1]
-    }
-
-    console.log(`Project "${p.title}" -> Company: "${key}"`)
-
-    if (!grouped[key]) {
-      console.warn(`Company "${key}" not found in companies list, creating new group`)
-      grouped[key] = []
-    }
-    grouped[key].push(p)
+  // 타임라인을 월 단위까지 고려하여 정렬
+  const sortedTimeline = [...timelineData].sort((a, b) => {
+    return parseYearMonth(a.content?.year || '0') - parseYearMonth(b.content?.year || '0')
   })
 
-  console.log("grouped:", grouped)
-  console.log("=== Grouping Complete ===")
+  // 회사별 색상 매핑 (같은 회사명이면 같은 색상)
+  const uniqueCompanies = [...new Set(sortedTimeline.map(t => t.content?.company))]
+  const companyColorMap: Record<string, number> = {}
+  uniqueCompanies.forEach((co, i) => { companyColorMap[co] = i % timelineColors.length })
+
+  // 타임라인 ID 기반으로 프로젝트 그룹화
+  const grouped: Record<string, Project[]> = {}
+  sortedTimeline.forEach(t => { grouped[t.id] = [] })
+
+  qaProjects.forEach(p => {
+    // 1순위: timeline_id로 매칭
+    let key = p.details?.timeline_id
+
+    // 2순위: timeline_id가 없으면 company 문자열로 폴백 매칭
+    if (!key || !grouped[key]) {
+      const company = p.details?.company
+      if (company) {
+        const matchedTimeline = sortedTimeline.find(t => t.content?.company === company)
+        key = matchedTimeline?.id
+      }
+    }
+
+    // 3순위: 그래도 없으면 마지막 타임라인에 배치
+    if (!key || !grouped[key]) {
+      key = sortedTimeline[sortedTimeline.length - 1]?.id
+    }
+
+    if (key && grouped[key]) {
+      grouped[key].push(p)
+    }
+  })
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 ${isAdmin ? "pt-10" : ""}`}>
@@ -1014,19 +999,20 @@ export default function ExperiencePage() {
                   <div className="relative">
                     <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gray-200 z-0"></div>
                     <div className="flex flex-wrap gap-3 relative z-10">
-                      {[...timelineData].sort((a, b) => parseInt(a.content?.year || '0') - parseInt(b.content?.year || '0')).map((item, index) => {
-                        const content = item.content || item
+                      {sortedTimeline.map((item, index) => {
+                        const content = item.content || {}
                         const colorIdx = companyColorMap[content.company] ?? 0
                         const color = timelineColors[colorIdx] || timelineColors[0]
-                        const isSelected = expandedCompany === content.company
-                        const isDragOver = dragOverCompany === content.company && draggedProject?.details?.company !== content.company
+                        const isSelected = expandedCompany === item.id
+                        const isDragOver = dragOverCompany === item.id && draggedProject?.details?.timeline_id !== item.id
+                        const projectCount = grouped[item.id]?.length || 0
                         return (
                           <div
                             key={item.id || index}
-                            onClick={() => { setExpandedCompany(content.company); setSelectedProject(null); }}
-                            onDragOver={isAdmin ? (e) => handleDragOverTimeline(e, content.company) : undefined}
+                            onClick={() => { setExpandedCompany(item.id); setSelectedProject(null); }}
+                            onDragOver={isAdmin ? (e) => handleDragOverTimeline(e, item.id) : undefined}
                             onDragLeave={isAdmin ? handleDragLeaveTimeline : undefined}
-                            onDrop={isAdmin ? (e) => handleDropOnTimeline(e, content.company) : undefined}
+                            onDrop={isAdmin ? (e) => handleDropOnTimeline(e, item.id) : undefined}
                             className={`relative group flex-1 min-w-[150px] ${color.light} rounded-2xl shadow-sm border ${color.border} p-4 cursor-pointer transition-all duration-300 ${
                               isSelected
                                 ? `ring-2 ring-offset-2 ${color.border.replace('border-', 'ring-')} shadow-lg scale-105`
@@ -1059,6 +1045,9 @@ export default function ExperiencePage() {
                             <p className="font-medium text-gray-900 text-sm mb-0.5">{content.role}</p>
                             <p className={`${color.text} text-xs font-medium mb-0.5`}>{content.company}</p>
                             <p className="text-gray-600 text-xs">{content.focus}</p>
+                            {projectCount > 0 && (
+                              <div className="mt-2 text-[10px] text-gray-400">{projectCount} {language === "ko" ? "개 프로젝트" : "projects"}</div>
+                            )}
                             {isSelected && (
                               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-current" style={{ color: color.bg === 'bg-blue-600' ? '#2563eb' : color.bg === 'bg-teal-600' ? '#0d9488' : '#d97706' }}></div>
                             )}
@@ -1069,23 +1058,28 @@ export default function ExperiencePage() {
                   </div>
                 </div>
 
-                {/* Selected company projects */}
+                {/* Selected timeline item's projects */}
                 {expandedCompany && (() => {
-                  const colorIdx = companyColorMap[expandedCompany] ?? 0
+                  const selectedTimeline = sortedTimeline.find(t => t.id === expandedCompany)
+                  if (!selectedTimeline) return null
+                  const content = selectedTimeline.content || {}
+                  const colorIdx = companyColorMap[content.company] ?? 0
                   const color = timelineColors[colorIdx] || timelineColors[0]
                   const companyProjects = grouped[expandedCompany] || []
-                  const companyYears = actualTimeline.filter(t => t.company === expandedCompany).map(t => t.year)
 
                   return (
                     <div data-scroll>
-                      {/* Company header */}
+                      {/* Timeline item header */}
                       <div className={`flex items-center gap-4 mb-6 p-4 rounded-2xl ${color.light} border ${color.border}`}>
                         <div className={`w-3 h-3 ${color.bg} rounded-full`}></div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 text-xl">{expandedCompany}</h3>
+                          <h3 className="font-semibold text-gray-900 text-xl">{content.company}</h3>
                           <p className="text-gray-500 text-sm">
-                            {companyYears.length > 0 && `${companyYears[0]} - ${companyYears[companyYears.length - 1]} · `}{companyProjects.length} {language === "ko" ? "개 프로젝트" : "projects"}
+                            {content.role} · {content.year} · {companyProjects.length} {language === "ko" ? "개 프로젝트" : "projects"}
                           </p>
+                          {content.focus && (
+                            <p className="text-gray-400 text-xs mt-1">{content.focus}</p>
+                          )}
                         </div>
                       </div>
 
