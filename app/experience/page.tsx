@@ -666,7 +666,7 @@ export default function ExperiencePage() {
           <>
             {/* ===== OVERVIEW TAB ===== */}
             {activeTab === "overview" && (
-              <div className="space-y-12">
+              <div className="space-y-16">
                 {/* Summary */}
                 <div className="relative overflow-hidden">
                   <div className="bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-3xl p-8 relative">
@@ -710,11 +710,11 @@ export default function ExperiencePage() {
                     onAdd={() => { setModalType("highlight"); setEditingItem(null); setShowAddModal(true); }}
                     addLabel={language === "ko" ? "+ 강점 추가" : "+ Add Highlight"}
                   />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {(highlightsData).map((item, index) => {
                       const content = item.content || item
                       return (
-                        <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                        <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-8 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
                           {isAdmin && item.id && !item.id.startsWith('temp-') && (
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
@@ -755,11 +755,11 @@ export default function ExperiencePage() {
                     onAdd={() => { setModalType("metric"); setEditingItem(null); setShowAddModal(true); }}
                     addLabel={language === "ko" ? "+ 성과 추가" : "+ Add Metric"}
                   />
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     {(metricsData).map((item, index) => {
                       const content = item.content || item
                       return (
-                        <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-5 text-center hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                        <div key={item.id || index} className="relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 text-center hover:shadow-md hover:-translate-y-1 transition-all duration-300">
                           {isAdmin && item.id && !item.id.startsWith('temp-') && (
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
@@ -883,6 +883,11 @@ export default function ExperiencePage() {
                       })}
                     </div>
                   </div>
+                </div>
+
+                {/* Subtle Footer */}
+                <div className="text-center pt-4">
+                  <p className="text-[11px] text-gray-300 tracking-wide">— QA Engineer Sophia Ko —</p>
                 </div>
               </div>
             )}
@@ -1118,14 +1123,19 @@ export default function ExperiencePage() {
                     </div>
                   )
                 })()}
+
+                {/* Subtle Footer */}
+                <div className="text-center pt-4">
+                  <p className="text-[11px] text-gray-300 tracking-wide">— QA Engineer Sophia Ko —</p>
+                </div>
               </div>
             )}
 
             {/* ===== VISION TAB ===== */}
             {activeTab === "vision" && (
-              <div className="space-y-12">
+              <div className="space-y-16">
                 {/* Philosophy Quote */}
-                <div className="relative bg-white rounded-2xl p-10 md:p-14 border border-gray-100 shadow-sm overflow-hidden">
+                <div className="relative bg-white rounded-2xl p-12 md:p-16 border border-gray-100 shadow-sm overflow-hidden">
                   <div className="absolute top-6 left-8 text-[120px] leading-none font-serif text-gray-200 select-none pointer-events-none">&ldquo;</div>
                   <div className="absolute bottom-2 right-8 text-[120px] leading-none font-serif text-gray-200 select-none pointer-events-none">&rdquo;</div>
                   {isAdmin && (
@@ -1175,7 +1185,7 @@ export default function ExperiencePage() {
                 {/* Value Cards */}
                 <div>
                   <SectionHeader title={language === "ko" ? "핵심 가치" : "Core Values"} editKey="valuesTitle" />
-                  <div className="grid md:grid-cols-3 gap-6">
+                  <div className="grid md:grid-cols-3 gap-8">
                     {[
                       {
                         icon: "🎯",
@@ -1317,7 +1327,7 @@ export default function ExperiencePage() {
                 {/* R&D Interest Areas */}
                 <div>
                   <SectionHeader title={language === "ko" ? "R&D 관심 분야" : "R&D Interest Areas"} editKey="rdTitle" />
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid md:grid-cols-2 gap-8">
                     {[
                       {
                         icon: "🤖",

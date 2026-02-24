@@ -308,7 +308,29 @@ export default function BlogPage() {
       <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4 tracking-tight">Blog</h1>
+          <style>{`
+            @keyframes letterDrop {
+              0% { opacity: 0; transform: translateY(-40px) rotate(-8deg); }
+              60% { opacity: 1; transform: translateY(4px) rotate(0deg); }
+              80% { transform: translateY(-2px); }
+              100% { opacity: 1; transform: translateY(0) rotate(0deg); }
+            }
+          `}</style>
+          <h1 className="text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+            {"Blog".split("").map((char, i) => (
+              <span
+                key={i}
+                className="inline-block"
+                style={{
+                  animation: 'letterDrop 0.6s ease-out forwards',
+                  animationDelay: `${i * 0.12}s`,
+                  opacity: 0,
+                }}
+              >
+                {char}
+              </span>
+            ))}
+          </h1>
           <p className="text-gray-500 text-lg">
             {language === "ko"
               ? "QA 엔지니어의 경험과 인사이트를 기록합니다"

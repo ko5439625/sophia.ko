@@ -300,6 +300,8 @@ export default function HomePage() {
                       className={`group cursor-pointer rounded-2xl transition-all duration-200 ${
                         suggestion.featured
                           ? "bg-white hover:bg-gray-50 border-2 border-gray-200 shadow-md hover:shadow-lg"
+                          : suggestion.id === 2
+                          ? "bg-blue-50/40 hover:bg-blue-50/70 border border-blue-100/60 shadow-sm hover:shadow-md"
                           : "hover:bg-gray-50"
                       }`}
                       onClick={suggestion.action}
@@ -325,6 +327,11 @@ export default function HomePage() {
                           >
                             {suggestion.description}
                           </p>
+                          {suggestion.id === 2 && (
+                            <p className="text-xs text-blue-500 font-medium mt-1.5">
+                              {language === "ko" ? "프로필 보기 →" : "View profile →"}
+                            </p>
+                          )}
                           {suggestion.featured && (
                             <div className="flex items-center mt-2 text-xs text-gray-500">
                               <span className="mr-1">💡</span>
