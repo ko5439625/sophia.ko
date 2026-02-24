@@ -179,7 +179,8 @@ export default function ExperiencePage() {
   // Auto-select the latest company when timeline data loads
   useEffect(() => {
     if (timelineData.length > 0 && expandedCompany === null) {
-      const timeline = timelineData.map(t => t.content)
+      const sorted = [...timelineData].sort((a, b) => parseInt(a.content?.year || '0') - parseInt(b.content?.year || '0'))
+      const timeline = sorted.map(t => t.content)
       const companyList = [...new Set(timeline.map((t: Record<string, string>) => t.company))]
       if (companyList.length > 0) {
         setExpandedCompany(companyList[companyList.length - 1] as string)
@@ -480,8 +481,12 @@ export default function ExperiencePage() {
     { bg: "bg-amber-600", light: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
   ]
 
-  // Always use Supabase data (no hardcoded fallback)
-  const actualTimeline = timelineData.map(t => t.content)
+  // Always use Supabase data (no hardcoded fallback), sorted by year ascending
+  const actualTimeline = [...timelineData].sort((a, b) => {
+    const yearA = parseInt(a.content?.year || '0')
+    const yearB = parseInt(b.content?.year || '0')
+    return yearA - yearB
+  }).map(t => t.content)
 
   console.log("=== Timeline Data Debug ===")
   console.log("timelineData:", timelineData)
@@ -838,7 +843,7 @@ export default function ExperiencePage() {
                   <div className="relative">
                     <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gray-200 z-0"></div>
                     <div className="flex flex-wrap gap-3 relative z-10">
-                      {(timelineData).map((item, index) => {
+                      {[...timelineData].sort((a, b) => parseInt(a.content?.year || '0') - parseInt(b.content?.year || '0')).map((item, index) => {
                         const content = item.content || item
                         const colorIdx = companyColorMap[content.company] ?? 0
                         const color = timelineColors[colorIdx]
