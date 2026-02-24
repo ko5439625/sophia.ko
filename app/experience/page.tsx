@@ -176,6 +176,17 @@ export default function ExperiencePage() {
     loadAllExperienceData(language)
   }, [language])
 
+  // Auto-select the latest company when timeline data loads
+  useEffect(() => {
+    if (timelineData.length > 0 && expandedCompany === null) {
+      const timeline = timelineData.map(t => t.content)
+      const companyList = [...new Set(timeline.map((t: Record<string, string>) => t.company))]
+      if (companyList.length > 0) {
+        setExpandedCompany(companyList[companyList.length - 1] as string)
+      }
+    }
+  }, [timelineData])
+
   const handleLanguageChange = (newLanguage: "ko" | "en") => {
     setLanguage(newLanguage)
     localStorage.setItem("language", newLanguage)
@@ -823,6 +834,7 @@ export default function ExperiencePage() {
                     onAdd={() => { setModalType("timeline"); setEditingItem(null); setShowAddModal(true); }}
                     addLabel={language === "ko" ? "+ 년도 추가" : "+ Add Year"}
                   />
+                  <p className="text-xs text-gray-400 mb-3 -mt-2">{language === "ko" ? "클릭하여 프로젝트 보기" : "Click to view projects"}</p>
                   <div className="relative">
                     <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gray-200 z-0"></div>
                     <div className="flex flex-wrap gap-3 relative z-10">
@@ -830,12 +842,21 @@ export default function ExperiencePage() {
                         const content = item.content || item
                         const colorIdx = companyColorMap[content.company] ?? 0
                         const color = timelineColors[colorIdx]
+                        const isSelected = expandedCompany === content.company
                         return (
-                          <div key={item.id || index} className={`relative group flex-1 min-w-[150px] ${color.light} rounded-2xl shadow-sm border ${color.border} p-4 hover:shadow-md hover:-translate-y-1 transition-all duration-300`}>
+                          <div
+                            key={item.id || index}
+                            onClick={() => { setExpandedCompany(content.company); setSelectedProject(null); }}
+                            className={`relative group flex-1 min-w-[150px] ${color.light} rounded-2xl shadow-sm border ${color.border} p-4 cursor-pointer transition-all duration-300 ${
+                              isSelected
+                                ? `ring-2 ring-offset-2 ${color.border.replace('border-', 'ring-')} shadow-lg scale-105`
+                                : 'opacity-70 hover:opacity-100 hover:shadow-md hover:-translate-y-2'
+                            }`}
+                          >
                             {isAdmin && item.id && !item.id.startsWith('temp-') && (
-                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                 <button
-                                  onClick={() => handleEditItem(item as ExperienceData, "timeline")}
+                                  onClick={(e) => { e.stopPropagation(); handleEditItem(item as ExperienceData, "timeline"); }}
                                   className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                                 >
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -843,7 +864,7 @@ export default function ExperiencePage() {
                                   </svg>
                                 </button>
                                 <button
-                                  onClick={() => handleDeleteItem(item.id)}
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
                                   className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
                                 >
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -858,6 +879,9 @@ export default function ExperiencePage() {
                             <p className="font-medium text-gray-900 text-sm mb-0.5">{content.role}</p>
                             <p className={`${color.text} text-xs font-medium mb-0.5`}>{content.company}</p>
                             <p className="text-gray-600 text-xs">{content.focus}</p>
+                            {isSelected && (
+                              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-current" style={{ color: color.bg === 'bg-blue-600' ? '#2563eb' : color.bg === 'bg-teal-600' ? '#0d9488' : '#d97706' }}></div>
+                            )}
                           </div>
                         )
                       })}
@@ -865,162 +889,156 @@ export default function ExperiencePage() {
                   </div>
                 </div>
 
-                {/* Projects grouped by company */}
-                {companies.map((company, ci) => {
-                  const colorIdx = companyColorMap[company]
+                {/* Selected company projects */}
+                {expandedCompany && (() => {
+                  const colorIdx = companyColorMap[expandedCompany]
                   const color = timelineColors[colorIdx]
-                  const companyProjects = grouped[company] || []
-                  const companyYears = actualTimeline.filter(t => t.company === company).map(t => t.year)
-                  const isExpanded = expandedCompany === company
+                  const companyProjects = grouped[expandedCompany] || []
+                  const companyYears = actualTimeline.filter(t => t.company === expandedCompany).map(t => t.year)
 
                   return (
-                    <div key={company}>
-                      <button
-                        onClick={() => setExpandedCompany(isExpanded ? null : company)}
-                        className={`w-full flex items-center justify-between mb-6 p-4 rounded-2xl ${color.light} border ${color.border} hover:shadow-md transition-all duration-200 cursor-pointer`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-3 h-3 ${color.bg} rounded-full`}></div>
-                          <div className="text-left">
-                            <h3 className="font-semibold text-gray-900 text-xl">{company}</h3>
-                            <p className="text-gray-500 text-sm">
-                              {companyYears.length > 0 && `${companyYears[0]} - ${companyYears[companyYears.length - 1]} • `}{companyProjects.length} {language === "ko" ? "개 프로젝트" : "projects"}
-                            </p>
-                          </div>
+                    <div>
+                      {/* Company header */}
+                      <div className={`flex items-center gap-4 mb-6 p-4 rounded-2xl ${color.light} border ${color.border}`}>
+                        <div className={`w-3 h-3 ${color.bg} rounded-full`}></div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 text-xl">{expandedCompany}</h3>
+                          <p className="text-gray-500 text-sm">
+                            {companyYears.length > 0 && `${companyYears[0]} - ${companyYears[companyYears.length - 1]} · `}{companyProjects.length} {language === "ko" ? "개 프로젝트" : "projects"}
+                          </p>
                         </div>
-                        <svg className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
+                      </div>
 
-                      {isExpanded && (
-                        <div className={`space-y-6 ml-4 pl-4 border-l-2 ${color.border} mb-8`}>
-                          {isAdmin && (
-                            <button
-                              onClick={() => handleAddProject(company)}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/60 backdrop-blur-sm border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:bg-white hover:border-blue-400 hover:text-blue-600 transition-all"
+                      {/* Project list */}
+                      <div className={`space-y-6 ml-4 pl-4 border-l-2 ${color.border}`}>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleAddProject(expandedCompany)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/60 backdrop-blur-sm border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:bg-white hover:border-blue-400 hover:text-blue-600 transition-all"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <span className="font-medium">{language === "ko" ? "+ 프로젝트 추가" : "+ Add Project"}</span>
+                          </button>
+                        )}
+                        {companyProjects.length === 0 && (
+                          <p className="text-gray-400 text-sm text-center py-8">{language === "ko" ? "등록된 프로젝트가 없습니다" : "No projects registered"}</p>
+                        )}
+                        {companyProjects.map((project) => (
+                          <div key={project.id} className="space-y-3">
+                            <div
+                              className={`relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer ${selectedProject === project.id ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
+                              onClick={() => setSelectedProject(selectedProject === project.id ? null : project.id)}
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
-                              <span className="font-medium">{language === "ko" ? "+ 프로젝트 추가" : "+ Add Project"}</span>
-                            </button>
-                          )}
-                          {companyProjects.map((project) => (
-                            <div key={project.id} className="space-y-3">
-                              <div
-                                className={`relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer ${selectedProject === project.id ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
-                                onClick={() => setSelectedProject(selectedProject === project.id ? null : project.id)}
-                              >
-                                {isAdmin && (
-                                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleEditProject(project)
-                                      }}
-                                      className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                      </svg>
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleDeleteProject(project.id)
-                                      }}
-                                      className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                )}
-                                <div className="p-6">
-                                  <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1">
-                                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h4>
-                                      <p className="text-gray-700 text-sm mb-4">{project.overview}</p>
-                                    </div>
-                                    <span className={`${color.light} ${color.text} px-3 py-1 rounded-full text-xs font-medium border ${color.border} ml-4 whitespace-nowrap`}>
-                                      {project.details?.type || "Project"}
-                                    </span>
-                                  </div>
-
-                                  {project.tech_stack && project.tech_stack.length > 0 && (
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {project.tech_stack.map((tech, i) => (
-                                        <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">
-                                          {tech}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {selectedProject === project.id && (
-                                <div className={`${color.light} rounded-2xl p-6 border ${color.border} shadow-sm`}>
-                                  {project.background && (
-                                    <div className="mb-6">
-                                      <h5 className="font-semibold text-gray-900 mb-2 text-sm">{language === "ko" ? "배경" : "Background"}</h5>
-                                      <p className="text-gray-700 text-sm leading-relaxed">{project.background}</p>
-                                    </div>
-                                  )}
-
-                                  {project.details && Object.keys(project.details).length > 0 && (
-                                    <div>
-                                      <h5 className="font-semibold text-gray-900 mb-3 text-sm">{language === "ko" ? "상세 정보" : "Details"}</h5>
-                                      <div className="space-y-2 text-sm">
-                                        {Object.entries(project.details).map(([key, value]) => {
-                                          if (Array.isArray(value)) {
-                                            return (
-                                              <div key={key} className="bg-white/50 rounded-lg p-3">
-                                                <p className="font-medium text-gray-900 mb-2">{key}:</p>
-                                                <ul className="list-disc list-inside space-y-1 text-gray-700">
-                                                  {value.map((item, i) => (
-                                                    <li key={i}>{String(item)}</li>
-                                                  ))}
-                                                </ul>
-                                              </div>
-                                            )
-                                          }
-                                          if (typeof value === 'object' && value !== null) {
-                                            return (
-                                              <div key={key} className="bg-white/50 rounded-lg p-3">
-                                                <p className="font-medium text-gray-900 mb-2">{key}:</p>
-                                                <div className="text-gray-700 space-y-1">
-                                                  {Object.entries(value).map(([k, v]) => (
-                                                    <div key={k} className="flex gap-2">
-                                                      <span className="font-medium">{k}:</span>
-                                                      <span>{String(v)}</span>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            )
-                                          }
-                                          return (
-                                            <div key={key} className="bg-white/50 rounded-lg p-3">
-                                              <span className="font-medium text-gray-900">{key}:</span>{' '}
-                                              <span className="text-gray-700">{String(value)}</span>
-                                            </div>
-                                          )
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
+                              {isAdmin && (
+                                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleEditProject(project)
+                                    }}
+                                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteProject(project.id)
+                                    }}
+                                    className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
                                 </div>
                               )}
+                              <div className="p-6">
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="flex-1">
+                                    <h4 className="text-xl font-semibold text-gray-900 mb-2">{project.title}</h4>
+                                    <p className="text-gray-700 text-sm mb-4">{project.overview}</p>
+                                  </div>
+                                  <span className={`${color.light} ${color.text} px-3 py-1 rounded-full text-xs font-medium border ${color.border} ml-4 whitespace-nowrap`}>
+                                    {project.details?.type || "Project"}
+                                  </span>
+                                </div>
+
+                                {project.tech_stack && project.tech_stack.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {project.tech_stack.map((tech, i) => (
+                                      <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">
+                                        {tech}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
+
+                            {selectedProject === project.id && (
+                              <div className={`${color.light} rounded-2xl p-6 border ${color.border} shadow-sm`}>
+                                {project.background && (
+                                  <div className="mb-6">
+                                    <h5 className="font-semibold text-gray-900 mb-2 text-sm">{language === "ko" ? "배경" : "Background"}</h5>
+                                    <p className="text-gray-700 text-sm leading-relaxed">{project.background}</p>
+                                  </div>
+                                )}
+
+                                {project.details && Object.keys(project.details).length > 0 && (
+                                  <div>
+                                    <h5 className="font-semibold text-gray-900 mb-3 text-sm">{language === "ko" ? "상세 정보" : "Details"}</h5>
+                                    <div className="space-y-2 text-sm">
+                                      {Object.entries(project.details).map(([key, value]) => {
+                                        if (Array.isArray(value)) {
+                                          return (
+                                            <div key={key} className="bg-white/50 rounded-lg p-3">
+                                              <p className="font-medium text-gray-900 mb-2">{key}:</p>
+                                              <ul className="list-disc list-inside space-y-1 text-gray-700">
+                                                {value.map((item, i) => (
+                                                  <li key={i}>{String(item)}</li>
+                                                ))}
+                                              </ul>
+                                            </div>
+                                          )
+                                        }
+                                        if (typeof value === 'object' && value !== null) {
+                                          return (
+                                            <div key={key} className="bg-white/50 rounded-lg p-3">
+                                              <p className="font-medium text-gray-900 mb-2">{key}:</p>
+                                              <div className="text-gray-700 space-y-1">
+                                                {Object.entries(value).map(([k, v]) => (
+                                                  <div key={k} className="flex gap-2">
+                                                    <span className="font-medium">{k}:</span>
+                                                    <span>{String(v)}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )
+                                        }
+                                        return (
+                                          <div key={key} className="bg-white/50 rounded-lg p-3">
+                                            <span className="font-medium text-gray-900">{key}:</span>{' '}
+                                            <span className="text-gray-700">{String(value)}</span>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )
-                })}
+                })()}
               </div>
             )}
 
