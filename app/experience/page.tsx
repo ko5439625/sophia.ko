@@ -846,7 +846,7 @@ export default function ExperiencePage() {
                       {[...timelineData].sort((a, b) => parseInt(a.content?.year || '0') - parseInt(b.content?.year || '0')).map((item, index) => {
                         const content = item.content || item
                         const colorIdx = companyColorMap[content.company] ?? 0
-                        const color = timelineColors[colorIdx]
+                        const color = timelineColors[colorIdx] || timelineColors[0]
                         const isSelected = expandedCompany === content.company
                         return (
                           <div
@@ -896,8 +896,8 @@ export default function ExperiencePage() {
 
                 {/* Selected company projects */}
                 {expandedCompany && (() => {
-                  const colorIdx = companyColorMap[expandedCompany]
-                  const color = timelineColors[colorIdx]
+                  const colorIdx = companyColorMap[expandedCompany] ?? 0
+                  const color = timelineColors[colorIdx] || timelineColors[0]
                   const companyProjects = grouped[expandedCompany] || []
                   const companyYears = actualTimeline.filter(t => t.company === expandedCompany).map(t => t.year)
 
