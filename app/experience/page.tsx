@@ -1383,12 +1383,7 @@ export default function ExperiencePage() {
                 <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-10 text-white shadow-2xl">
                   <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-8">
-                      <h2 className="text-2xl font-bold mb-2">
-                        {language === "ko" ? "함께 품질을 구축할 준비가 되셨나요?" : "Ready to Build Quality Together?"}
-                      </h2>
-                      <p className="text-gray-400">
-                        {language === "ko" ? "사용자가 사랑하고 개발자가 자랑스러워하는 제품을 만들어봅시다." : "Let's create products that users love and developers are proud of."}
-                      </p>
+                      <p className="text-lg font-light text-gray-300 tracking-widest uppercase">Designing Reliable Quality.</p>
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-6 mb-8 text-center md:text-left">
