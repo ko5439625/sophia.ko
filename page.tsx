@@ -227,7 +227,7 @@ export default function AboutPage() {
             </div>
             <div className="flex-1 text-center lg:text-left">
               <div className="flex items-center justify-center lg:justify-start mb-3">
-                <EditableField value={c("name", language === "ko" ? "고아현" : "Goahyun Ko")} onSave={save("name")} as="h1" className="text-4xl font-light text-gray-900 mr-3" />
+                <EditableField value={c("name", language === "ko" ? "고아현" : "Goahyun Ko")} onSave={save("name")} as="h1" className="text-4xl font-bold text-gray-900 mr-3 tracking-tight" />
                 <EditableField value={c("position", "Senior QA Engineer")} onSave={save("position")} as="div" className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full font-medium" />
               </div>
               <EditableField value={c("experience", language === "ko" ? "5년차 QA 전문가" : "5 years of experience")} onSave={save("experience")} as="p" className="text-lg text-gray-600 mb-3" />
@@ -260,7 +260,7 @@ export default function AboutPage() {
         {/* Info Section */}
         <div className="mb-8">
           <div className="flex items-center mb-8">
-            <EditableField value={c("sectionTitle", "About")} onSave={save("sectionTitle")} as="h2" className="text-3xl font-light text-gray-900 mr-4" />
+            <EditableField value={c("sectionTitle", "About")} onSave={save("sectionTitle")} as="h2" className="text-3xl font-semibold text-gray-900 mr-4 tracking-tight" />
             <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
           </div>
 

@@ -560,7 +560,7 @@ export default function ExperiencePage() {
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <EditableField value={c("title", "Experience")} onSave={save("title")} as="h1" className="text-4xl font-light text-gray-900 mb-4" />
+          <EditableField value={c("title", "Experience")} onSave={save("title")} as="h1" className="text-4xl font-bold text-gray-900 mb-4 tracking-tight" />
           <EditableField
             value={c("subtitle", language === "ko" ? "5년간 제품에 품질을 구축해온 경험" : "5 years of building quality into products")}
             onSave={save("subtitle")}
@@ -623,7 +623,7 @@ export default function ExperiencePage() {
                       </button>
                     )}
                     <div className="relative z-10">
-                      <EditableField value={c("summaryTitle", language === "ko" ? "요약" : "Summary")} onSave={save("summaryTitle")} as="h2" className="text-2xl font-light text-gray-900 mb-6" />
+                      <EditableField value={c("summaryTitle", language === "ko" ? "요약" : "Summary")} onSave={save("summaryTitle")} as="h2" className="text-2xl font-semibold text-gray-900 mb-6" />
                       <EditableField value={c("summary", defaultSummary)} onSave={save("summary")} as="p" className="text-gray-800 text-lg leading-relaxed" multiline />
                     </div>
                   </div>
@@ -707,7 +707,7 @@ export default function ExperiencePage() {
                               </button>
                             </div>
                           )}
-                          <div className="text-2xl font-light text-blue-600 mb-1">{content.value}</div>
+                          <div className="text-2xl font-semibold text-blue-600 mb-1">{content.value}</div>
                           <div className="font-semibold text-gray-900 text-sm mb-1">{content.label}</div>
                           <div className="text-xs text-gray-500">{content.description}</div>
                         </div>
@@ -1064,12 +1064,12 @@ export default function ExperiencePage() {
                         <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                       </svg>
                     </div>
-                    <blockquote className="text-3xl font-light text-gray-800 mb-6 leading-relaxed">
+                    <blockquote className="text-3xl font-medium text-gray-800 mb-6 leading-relaxed">
                       <EditableField
                         value={c("visionQuote", language === "ko" ? "품질은 우연이 아니라 의도의 결과입니다" : "Quality is not an accident, it's the result of intention")}
                         onSave={save("visionQuote")}
                         as="span"
-                        className="text-3xl font-light text-gray-800"
+                        className="text-3xl font-medium text-gray-800"
                         multiline
                       />
                     </blockquote>

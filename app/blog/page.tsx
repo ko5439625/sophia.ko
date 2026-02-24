@@ -225,8 +225,8 @@ export default function BlogPage() {
       <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-light text-gray-900 mb-4">Blog</h1>
-          <p className="text-gray-600 text-lg font-light">
+          <h1 className="text-5xl font-bold text-gray-900 mb-4 tracking-tight">Blog</h1>
+          <p className="text-gray-500 text-lg">
             {language === "ko"
               ? "QA 엔지니어의 경험과 인사이트를 기록합니다"
               : "Recording experiences and insights of a QA engineer"}
