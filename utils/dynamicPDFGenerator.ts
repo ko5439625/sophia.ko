@@ -25,8 +25,8 @@ export const generateDynamicPortfolioPDF = async ({ language }: PDFContent) => {
 async function loadAboutData(language: "ko" | "en") {
   // Load contact info
   const name = getContent(`about.${language}.name`, language === "ko" ? "고아현" : "Goahyun Ko")
-  const position = getContent(`about.${language}.position`, "Senior QA Engineer")
-  const experience = getContent(`about.${language}.experience`, language === "ko" ? "5년차 QA 전문가" : "5 years of experience")
+  const position = getContent(`about.${language}.position`, "QA Engineer")
+  const experience = getContent(`about.${language}.experience`, language === "ko" ? "QA 전문가" : "QA Specialist")
   const quote = getContent(`about.${language}.quote`, language === "ko" ? "품질은 행동이 아니라 습관이다" : "Quality is not an act, it is a habit")
 
   // Load contact details

@@ -2,14 +2,14 @@ export const generatePDFTemplate = (language: "ko" | "en") => {
   const content = {
     ko: {
       title: "고아현 - QA 엔지니어 포트폴리오",
-      subtitle: "Senior QA Engineer • 5년차 전문가 • 99.7% 프로젝트 성공률",
+      subtitle: "QA Engineer • QA 전문가 • 99.7% 프로젝트 성공률",
       executiveSummary:
         "5년간의 체계적인 QA 경험을 바탕으로 품질 혁신과 프로세스 개선을 통해 팀 성과 향상에 기여하는 전문가입니다. 15개 이상의 주요 프로젝트에서 99.7%의 성공률을 달성하며, 예방적 품질 관리와 데이터 기반 의사결정으로 조직의 품질 문화를 혁신해왔습니다.",
       quote: "완벽한 제품보다는 사용자가 행복한 제품을 만드는 데 기여하고 싶습니다",
       contact: {
         name: "고아현",
-        position: "Senior QA Engineer",
-        experience: "5년차 (2020.01 ~ 현재)",
+        position: "QA Engineer",
+        experience: "2020.01 ~ 현재",
         education: "컴퓨터공학과 학사",
         email: "sophia.ko@email.com",
         phone: "010-1234-5678",

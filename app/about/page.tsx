@@ -347,9 +347,9 @@ export default function AboutPage() {
             <div className="flex-1 text-center lg:text-left">
               <div className="flex items-center justify-center lg:justify-start mb-3">
                 <EditableField value={c("name", language === "ko" ? "고아현" : "Goahyun Ko")} onSave={save("name")} as="h1" className="text-4xl font-bold text-gray-900 mr-3 tracking-tight" />
-                <EditableField value={c("position", "Senior QA Engineer")} onSave={save("position")} as="div" className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full font-medium" />
+                <EditableField value={c("position", "QA Engineer")} onSave={save("position")} as="div" className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full font-medium" />
               </div>
-              <EditableField value={c("experience", language === "ko" ? "5년차 QA 전문가" : "5 years of experience")} onSave={save("experience")} as="p" className="text-lg text-gray-600 mb-3" />
+              <EditableField value={c("experience", language === "ko" ? "QA 전문가" : "QA Specialist")} onSave={save("experience")} as="p" className="text-lg text-gray-600 mb-3" />
               <EditableField value={c("quote", language === "ko" ? "품질은 행동이 아니라 습관이다 - 아리스토텔레스" : '"Quality is not an act, it is a habit" - Aristotle')} onSave={save("quote")} as="p" className="text-gray-700 italic mb-6" />
 
               <div className="flex flex-wrap justify-center lg:justify-start gap-4">

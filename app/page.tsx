@@ -68,7 +68,7 @@ export default function HomePage() {
       {
         id: 1,
         text: "📄 면접관용 포트폴리오",
-        description: "5년차 QA 전문가의 핵심 경력 요약본",
+        description: "QA 전문가의 핵심 경력 요약본",
         type: "pdf",
         action: handlePDFDownload,
         featured: true,
@@ -76,14 +76,14 @@ export default function HomePage() {
       {
         id: 2,
         text: "👤 고아현 소개",
-        description: "5년차 시니어 QA 엔지니어 • 사용자 중심 사고",
+        description: "QA 엔지니어 • 사용자 중심 사고",
         type: "page",
         action: () => (window.location.href = "/about"),
       },
       {
         id: 3,
         text: "💼 고아현 경험",
-        description: "15+ 프로젝트 • 99.7% 성공률 • 테스트 자동화 전문",
+        description: "커리어 타임라인 • 프로젝트 포트폴리오",
         type: "page",
         action: () => (window.location.href = "/experience"),
       },

@@ -600,10 +600,17 @@ export default function ExperiencePage() {
     return parseYearMonth(a.content?.year || '0') - parseYearMonth(b.content?.year || '0')
   })
 
-  // 회사별 색상 매핑 (같은 회사명이면 같은 색상)
-  const uniqueCompanies = [...new Set(sortedTimeline.map(t => t.content?.company))]
-  const companyColorMap: Record<string, number> = {}
-  uniqueCompanies.forEach((co, i) => { companyColorMap[co] = i % timelineColors.length })
+  // 회사 그룹 키 추출 함수 ("NCsoft - 라이브 QA" → "ncsoft")
+  const getCompanyGroupKey = (company: string) => {
+    if (!company) return ""
+    const sep = company.indexOf(" - ")
+    return sep > 0 ? company.substring(0, sep).toLowerCase() : company.toLowerCase()
+  }
+
+  // 그룹 키 기반 색상 매핑 (같은 회사 = 같은 색상)
+  const uniqueGroupKeys = [...new Set(sortedTimeline.map(t => getCompanyGroupKey(t.content?.company || "")))]
+  const groupColorMap: Record<string, number> = {}
+  uniqueGroupKeys.forEach((key, i) => { groupColorMap[key] = i % timelineColors.length })
 
   // 타임라인 ID 기반으로 프로젝트 그룹화
   const grouped: Record<string, Project[]> = {}
@@ -998,62 +1005,120 @@ export default function ExperiencePage() {
                   </p>
                   <div className="relative">
                     <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gray-200 z-0"></div>
-                    <div className="flex flex-wrap gap-3 relative z-10">
-                      {sortedTimeline.map((item, index) => {
-                        const content = item.content || {}
-                        const colorIdx = companyColorMap[content.company] ?? 0
-                        const color = timelineColors[colorIdx] || timelineColors[0]
-                        const isSelected = expandedCompany === item.id
-                        const isDragOver = dragOverCompany === item.id && draggedProject?.details?.timeline_id !== item.id
-                        const projectCount = grouped[item.id]?.length || 0
+                    {/* 같은 회사끼리 그룹핑하여 렌더링 */}
+                    <div className="relative z-10">
+                      {(() => {
+                        // 회사명에서 그룹 키 추출 ("NCsoft - 라이브 QA" → "NCsoft")
+                        const getCompanyGroup = (company: string) => {
+                          if (!company) return ""
+                          const sep = company.indexOf(" - ")
+                          return sep > 0 ? company.substring(0, sep).toLowerCase() : company.toLowerCase()
+                        }
+
+                        // 정렬된 타임라인을 같은 회사끼리 그룹핑 (인접하지 않아도 매칭)
+                        const companyGroups: { company: string; groupKey: string; items: typeof sortedTimeline }[] = []
+                        sortedTimeline.forEach(item => {
+                          const company = item.content?.company || ""
+                          const groupKey = getCompanyGroup(company)
+                          const existingGroup = companyGroups.find(g => g.groupKey === groupKey)
+                          if (existingGroup) {
+                            existingGroup.items.push(item)
+                          } else {
+                            companyGroups.push({ company, groupKey, items: [item] })
+                          }
+                        })
+
+                        // 항상 3컬럼 기준으로 동일 폭 유지
+                        const maxCols = 3
+                        const totalGroups = companyGroups.length
+
                         return (
-                          <div
-                            key={item.id || index}
-                            onClick={() => { setExpandedCompany(item.id); setSelectedProject(null); }}
-                            onDragOver={isAdmin ? (e) => handleDragOverTimeline(e, item.id) : undefined}
-                            onDragLeave={isAdmin ? handleDragLeaveTimeline : undefined}
-                            onDrop={isAdmin ? (e) => handleDropOnTimeline(e, item.id) : undefined}
-                            className={`relative group flex-1 min-w-[150px] ${color.light} rounded-2xl shadow-sm border ${color.border} p-4 cursor-pointer transition-all duration-300 ${
-                              isSelected
-                                ? `ring-2 ring-offset-2 ${color.border.replace('border-', 'ring-')} shadow-lg scale-105`
-                                : 'opacity-70 hover:opacity-100 hover:shadow-md hover:-translate-y-2'
-                            } ${isDragOver ? 'ring-2 ring-dashed ring-blue-400 scale-110 shadow-xl bg-blue-100/50' : ''}`}
-                          >
-                            {isAdmin && item.id && !item.id.startsWith('temp-') && (
-                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleEditItem(item as ExperienceData, "timeline"); }}
-                                  className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                >
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
-                                  className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
-                                >
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
+                          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}>
+                        {companyGroups.map((group) => {
+                          const colorIdx = groupColorMap[group.groupKey] ?? 0
+                          const color = timelineColors[colorIdx] || timelineColors[0]
+                          const hasSelectedItem = group.items.some(item => expandedCompany === item.id)
+
+                          return (
+                            <div
+                              key={group.company}
+                              className={`rounded-2xl border-2 border-dashed ${color.border} p-2 ${hasSelectedItem ? color.light : 'bg-white/30'} transition-colors duration-300`}
+                            >
+                              {/* 회사 라벨 (항상 표시) */}
+                              {(() => {
+                                const firstCompany = group.items[0]?.content?.company || ""
+                                const sep = firstCompany.indexOf(" - ")
+                                const displayName = sep > 0 ? firstCompany.substring(0, sep) : firstCompany
+                                return (
+                                  <div className={`text-xs font-semibold ${color.text} mb-2 px-2 flex items-center gap-1.5`}>
+                                    <div className={`w-2 h-2 ${color.bg} rounded-full`}></div>
+                                    {displayName}
+                                  </div>
+                                )
+                              })()}
+                              <div className="flex flex-col gap-2">
+                                {group.items.map((item, index) => {
+                                  const content = item.content || {}
+                                  const isSelected = expandedCompany === item.id
+                                  const isDragOver = dragOverCompany === item.id && draggedProject?.details?.timeline_id !== item.id
+                                  const projectCount = grouped[item.id]?.length || 0
+                                  return (
+                                    <div
+                                      key={item.id || index}
+                                      onClick={() => { setExpandedCompany(item.id); setSelectedProject(null); }}
+                                      onDragOver={isAdmin ? (e) => handleDragOverTimeline(e, item.id) : undefined}
+                                      onDragLeave={isAdmin ? handleDragLeaveTimeline : undefined}
+                                      onDrop={isAdmin ? (e) => handleDropOnTimeline(e, item.id) : undefined}
+                                      className={`relative group ${color.light} rounded-xl shadow-sm border ${color.border} p-3 cursor-pointer transition-all duration-300 ${
+                                        isSelected
+                                          ? `ring-2 ring-offset-1 ${color.border.replace('border-', 'ring-')} shadow-lg`
+                                          : 'opacity-70 hover:opacity-100 hover:shadow-md'
+                                      } ${isDragOver ? 'ring-2 ring-dashed ring-blue-400 shadow-xl bg-blue-100/50' : ''}`}
+                                    >
+                                      {isAdmin && item.id && !item.id.startsWith('temp-') && (
+                                        <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleEditItem(item as ExperienceData, "timeline"); }}
+                                            className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                          >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            </svg>
+                                          </button>
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteItem(item.id); }}
+                                            className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                          >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                          </button>
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-2 mb-1.5">
+                                        <div className={`inline-block ${color.bg} text-white text-[10px] font-bold px-2 py-0.5 rounded-md`}>
+                                          {content.year}
+                                        </div>
+                                        {projectCount > 0 && (
+                                          <span className="text-[10px] text-gray-400">{projectCount}</span>
+                                        )}
+                                      </div>
+                                      <p className="font-medium text-gray-900 text-sm mb-0.5">{content.role}</p>
+                                      <p className={`${color.text} text-xs font-medium mb-0.5`}>{content.company}</p>
+                                      <p className="text-gray-500 text-xs leading-relaxed">{content.focus}</p>
+                                      {isSelected && (
+                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-current" style={{ color: color.bg === 'bg-blue-600' ? '#2563eb' : color.bg === 'bg-teal-600' ? '#0d9488' : '#d97706' }}></div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
                               </div>
-                            )}
-                            <div className={`inline-block ${color.bg} text-white text-xs font-bold px-2.5 py-1 rounded-lg mb-2`}>
-                              {content.year}
                             </div>
-                            <p className="font-medium text-gray-900 text-sm mb-0.5">{content.role}</p>
-                            <p className={`${color.text} text-xs font-medium mb-0.5`}>{content.company}</p>
-                            <p className="text-gray-600 text-xs">{content.focus}</p>
-                            {projectCount > 0 && (
-                              <div className="mt-2 text-[10px] text-gray-400">{projectCount} {language === "ko" ? "개 프로젝트" : "projects"}</div>
-                            )}
-                            {isSelected && (
-                              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-current" style={{ color: color.bg === 'bg-blue-600' ? '#2563eb' : color.bg === 'bg-teal-600' ? '#0d9488' : '#d97706' }}></div>
-                            )}
+                          )
+                        })}
                           </div>
                         )
-                      })}
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1063,7 +1128,7 @@ export default function ExperiencePage() {
                   const selectedTimeline = sortedTimeline.find(t => t.id === expandedCompany)
                   if (!selectedTimeline) return null
                   const content = selectedTimeline.content || {}
-                  const colorIdx = companyColorMap[content.company] ?? 0
+                  const colorIdx = groupColorMap[getCompanyGroupKey(content.company)] ?? 0
                   const color = timelineColors[colorIdx] || timelineColors[0]
                   const companyProjects = grouped[expandedCompany] || []
 
@@ -1170,7 +1235,7 @@ export default function ExperiencePage() {
                                   <div>
                                     <h5 className="font-semibold text-gray-900 mb-3 text-sm">{language === "ko" ? "상세 정보" : "Details"}</h5>
                                     <div className="space-y-2 text-sm">
-                                      {Object.entries(project.details).map(([key, value]) => {
+                                      {Object.entries(project.details).filter(([key]) => !['timeline_id', 'company'].includes(key)).map(([key, value]) => {
                                         if (Array.isArray(value)) {
                                           return (
                                             <div key={key} className="bg-white/50 rounded-lg p-3">
