@@ -87,6 +87,10 @@ export default function ExperiencePage() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
 
+  // Drag & Drop states (admin only)
+  const [draggedProject, setDraggedProject] = useState<Project | null>(null)
+  const [dragOverCompany, setDragOverCompany] = useState<string | null>(null)
+
   // AI states
   const [aiLoading, setAiLoading] = useState<string | null>(null)
   const [aiError, setAiError] = useState("")
@@ -429,6 +433,55 @@ export default function ExperiencePage() {
       console.error("Error deleting project:", error)
       alert(language === "ko" ? "프로젝트 삭제 실패" : "Failed to delete project")
     }
+  }
+
+  // Drag & Drop handlers for moving projects between companies
+  const handleDragStart = (e: React.DragEvent, project: Project) => {
+    setDraggedProject(project)
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", project.id)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedProject(null)
+    setDragOverCompany(null)
+  }
+
+  const handleDragOverTimeline = (e: React.DragEvent, company: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+    setDragOverCompany(company)
+  }
+
+  const handleDragLeaveTimeline = () => {
+    setDragOverCompany(null)
+  }
+
+  const handleDropOnTimeline = async (e: React.DragEvent, targetCompany: string) => {
+    e.preventDefault()
+    setDragOverCompany(null)
+
+    if (!draggedProject) return
+    const currentCompany = draggedProject.details?.company
+    if (currentCompany === targetCompany) {
+      setDraggedProject(null)
+      return
+    }
+
+    try {
+      const updatedDetails = { ...(draggedProject.details || {}), company: targetCompany }
+      await updateProject(draggedProject.id, { details: updatedDetails })
+
+      // Reload projects
+      const updatedProjects = await loadProjects(language)
+      setProjects(updatedProjects)
+      setExpandedCompany(targetCompany)
+      setSelectedProject(null)
+    } catch (error) {
+      console.error("Error moving project:", error)
+      alert(language === "ko" ? "프로젝트 이동 실패" : "Failed to move project")
+    }
+    setDraggedProject(null)
   }
 
   const c = (key: string, fallback: string) => getContent(`exp.${language}.${key}`, fallback)
@@ -845,7 +898,15 @@ export default function ExperiencePage() {
                     onAdd={() => { setModalType("timeline"); setEditingItem(null); setShowAddModal(true); }}
                     addLabel={language === "ko" ? "+ 년도 추가" : "+ Add Year"}
                   />
-                  <p className="text-xs text-gray-400 mb-3 -mt-2">{language === "ko" ? "클릭하여 프로젝트 보기" : "Click to view projects"}</p>
+                  <p className="text-xs text-gray-400 mb-3 -mt-2">
+                    {draggedProject
+                      ? (language === "ko" ? "타임라인 카드에 드롭하여 프로젝트 이동" : "Drop on a timeline card to move project")
+                      : (language === "ko" ? "클릭하여 프로젝트 보기" : "Click to view projects")
+                    }
+                    {isAdmin && !draggedProject && (
+                      <span className="ml-2 text-gray-300">{language === "ko" ? "· 프로젝트를 드래그하여 이동 가능" : "· Drag projects to move"}</span>
+                    )}
+                  </p>
                   <div className="relative">
                     <div className="hidden md:block absolute top-8 left-8 right-8 h-0.5 bg-gray-200 z-0"></div>
                     <div className="flex flex-wrap gap-3 relative z-10">
@@ -854,15 +915,19 @@ export default function ExperiencePage() {
                         const colorIdx = companyColorMap[content.company] ?? 0
                         const color = timelineColors[colorIdx] || timelineColors[0]
                         const isSelected = expandedCompany === content.company
+                        const isDragOver = dragOverCompany === content.company && draggedProject?.details?.company !== content.company
                         return (
                           <div
                             key={item.id || index}
                             onClick={() => { setExpandedCompany(content.company); setSelectedProject(null); }}
+                            onDragOver={isAdmin ? (e) => handleDragOverTimeline(e, content.company) : undefined}
+                            onDragLeave={isAdmin ? handleDragLeaveTimeline : undefined}
+                            onDrop={isAdmin ? (e) => handleDropOnTimeline(e, content.company) : undefined}
                             className={`relative group flex-1 min-w-[150px] ${color.light} rounded-2xl shadow-sm border ${color.border} p-4 cursor-pointer transition-all duration-300 ${
                               isSelected
                                 ? `ring-2 ring-offset-2 ${color.border.replace('border-', 'ring-')} shadow-lg scale-105`
                                 : 'opacity-70 hover:opacity-100 hover:shadow-md hover:-translate-y-2'
-                            }`}
+                            } ${isDragOver ? 'ring-2 ring-dashed ring-blue-400 scale-110 shadow-xl bg-blue-100/50' : ''}`}
                           >
                             {isAdmin && item.id && !item.id.startsWith('temp-') && (
                               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -939,7 +1004,10 @@ export default function ExperiencePage() {
                         {companyProjects.map((project) => (
                           <div key={project.id} className="space-y-3">
                             <div
-                              className={`relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer ${selectedProject === project.id ? "ring-2 ring-offset-1 ring-blue-400" : ""}`}
+                              draggable={isAdmin}
+                              onDragStart={isAdmin ? (e) => handleDragStart(e, project) : undefined}
+                              onDragEnd={isAdmin ? handleDragEnd : undefined}
+                              className={`relative group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden hover:shadow-lg hover:bg-white/80 transition-all duration-300 cursor-pointer ${selectedProject === project.id ? "ring-2 ring-offset-1 ring-blue-400" : ""} ${isAdmin ? "cursor-grab active:cursor-grabbing" : ""} ${draggedProject?.id === project.id ? "opacity-50 scale-95" : ""}`}
                               onClick={() => setSelectedProject(selectedProject === project.id ? null : project.id)}
                             >
                               {isAdmin && (
