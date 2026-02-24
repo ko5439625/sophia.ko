@@ -345,16 +345,17 @@ export default function ExperiencePage() {
       console.log("editingProject:", editingProject)
 
       if (editingProject) {
-        // Update existing project
+        // Update existing project - merge with existing details
+        const mergedDetails = {
+          ...(editingProject.details || {}),
+          ...projectData.details
+        }
         await updateProject(editingProject.id, {
           title: projectData.title,
           overview: projectData.overview,
           background: projectData.background,
           tech_stack: projectData.tech_stack,
-          details: {
-            ...projectData.details,
-            achievements: projectData.achievements
-          }
+          details: mergedDetails
         })
         console.log("프로젝트 수정 완료")
       } else {
@@ -367,10 +368,7 @@ export default function ExperiencePage() {
           overview: projectData.overview,
           background: projectData.background,
           tech_stack: projectData.tech_stack,
-          details: {
-            ...projectData.details,
-            achievements: projectData.achievements
-          }
+          details: projectData.details || {}
         })
         console.log("프로젝트 추가 완료")
       }

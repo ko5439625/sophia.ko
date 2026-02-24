@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import type { Project } from "@/lib/projects-store"
 
 interface AddProjectModalProps {
   isOpen: boolean
@@ -10,19 +11,11 @@ interface AddProjectModalProps {
     overview: string
     background?: string
     tech_stack: string[]
-    achievements?: string
     details?: Record<string, any>
   }) => void
   company: string
   language: "ko" | "en"
-  editingProject?: {
-    id: string
-    title: string
-    overview: string
-    background?: string
-    tech_stack: string[]
-    details?: Record<string, any>
-  } | null
+  editingProject?: Project | null
 }
 
 export function AddProjectModal({ isOpen, onClose, onSave, company, language, editingProject }: AddProjectModalProps) {
@@ -32,39 +25,49 @@ export function AddProjectModal({ isOpen, onClose, onSave, company, language, ed
     background: "",
     tech_stack: "",
     achievements: "",
+    description: "",
     type: "QA Project",
-    period: ""
+    period: "",
+    company: ""
   })
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState("")
 
   useEffect(() => {
     if (isOpen && editingProject) {
+      const details = editingProject.details || {}
+      const achievements = Array.isArray(details.achievements)
+        ? details.achievements.join("\n")
+        : (details.achievements || "")
+
       setFormData({
         title: editingProject.title,
         overview: editingProject.overview,
         background: editingProject.background || "",
-        tech_stack: editingProject.tech_stack.join(", "),
-        achievements: editingProject.details?.achievements || "",
-        type: editingProject.details?.type || "QA Project",
-        period: editingProject.details?.period || ""
+        tech_stack: editingProject.tech_stack?.join(", ") || "",
+        achievements,
+        description: details.description || "",
+        type: details.type || "QA Project",
+        period: details.period || "",
+        company: details.company || company
       })
-    } else if (!isOpen) {
+    } else if (isOpen && !editingProject) {
       setFormData({
         title: "",
         overview: "",
         background: "",
         tech_stack: "",
         achievements: "",
+        description: "",
         type: "QA Project",
-        period: ""
+        period: "",
+        company: company
       })
       setAiError("")
     }
-  }, [isOpen, editingProject])
+  }, [isOpen, editingProject, company])
 
   const handleAIAutoFill = async () => {
-    // Check if user has entered some content
     const hasContent = formData.title.trim() || formData.overview.trim() || formData.background.trim()
 
     if (!hasContent) {
@@ -78,13 +81,11 @@ export function AddProjectModal({ isOpen, onClose, onSave, company, language, ed
     try {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: 'project content improvement',
           type: 'project',
-          context: `회사: ${company}`,
+          context: `회사: ${formData.company || company}`,
           language,
           formData: formData
         }),
@@ -97,15 +98,16 @@ export function AddProjectModal({ isOpen, onClose, onSave, company, language, ed
 
       const data = await response.json()
 
-      // AI 응답으로 폼 데이터 채우기
       setFormData({
         title: data.title || formData.title,
         overview: data.overview || formData.overview,
         background: data.background || formData.background,
         tech_stack: data.tech_stack ? data.tech_stack.join(", ") : formData.tech_stack,
         achievements: data.achievements || formData.achievements,
+        description: data.description || formData.description,
         type: data.type || formData.type,
-        period: data.period || formData.period
+        period: data.period || formData.period,
+        company: formData.company
       })
     } catch (error: any) {
       console.error("AI 자동 완성 오류:", error)
@@ -124,44 +126,39 @@ export function AddProjectModal({ isOpen, onClose, onSave, company, language, ed
       ? formData.tech_stack.split(",").map(t => t.trim()).filter(t => t)
       : []
 
+    // achievements를 줄바꿈 기준으로 배열로 변환
+    const achievementsArray = formData.achievements
+      ? formData.achievements.split("\n").map(a => a.trim()).filter(a => a)
+      : []
+
     onSave({
       title: formData.title,
       overview: formData.overview,
       background: formData.background || undefined,
       tech_stack: techArray,
       details: {
-        company,
+        company: formData.company || company,
         type: formData.type,
         period: formData.period,
-        achievements: formData.achievements
+        achievements: achievementsArray.length > 0 ? achievementsArray : undefined,
+        description: formData.description || undefined
       }
     })
-
-    setFormData({
-      title: "",
-      overview: "",
-      background: "",
-      tech_stack: "",
-      achievements: "",
-      type: "QA Project",
-      period: ""
-    })
   }
+
+  const fieldClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
           <h2 className="text-xl font-semibold text-gray-900">
             {editingProject
-              ? (language === "ko" ? `${company} - 프로젝트 수정` : `${company} - Edit Project`)
-              : (language === "ko" ? `${company} - 프로젝트 추가` : `${company} - Add Project`)
+              ? (language === "ko" ? `프로젝트 수정` : `Edit Project`)
+              : (language === "ko" ? `프로젝트 추가` : `Add Project`)
             }
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -207,121 +204,162 @@ export function AddProjectModal({ isOpen, onClose, onSave, company, language, ed
               </button>
             </div>
             {aiError && (
-              <div className="mt-2 text-xs text-red-600 bg-red-50 rounded px-2 py-1">
-                {aiError}
-              </div>
+              <div className="mt-2 text-xs text-red-600 bg-red-50 rounded px-2 py-1">{aiError}</div>
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {language === "ko" ? "프로젝트 제목 *" : "Project Title *"}
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder={language === "ko" ? "예: 결제 시스템 QA 자동화" : "e.g., Payment System QA Automation"}
-              required
-            />
-          </div>
+          {/* 기본 정보 */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              {language === "ko" ? "기본 정보" : "Basic Info"}
+            </h3>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {language === "ko" ? "프로젝트 개요 *" : "Project Overview *"}
-            </label>
-            <textarea
-              value={formData.overview}
-              onChange={(e) => setFormData({ ...formData, overview: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              placeholder={language === "ko" ? "프로젝트에 대한 간단한 설명" : "Brief description of the project"}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {language === "ko" ? "프로젝트 배경" : "Project Background"}
-            </label>
-            <textarea
-              value={formData.background}
-              onChange={(e) => setFormData({ ...formData, background: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              placeholder={language === "ko" ? "프로젝트 배경 및 상세 설명" : "Project background and detailed description"}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {language === "ko" ? "주요 성과 *" : "Achievements *"}
-            </label>
-            <textarea
-              value={formData.achievements}
-              onChange={(e) => setFormData({ ...formData, achievements: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              placeholder={language === "ko" ? "프로젝트의 주요 성과 및 결과물" : "Key achievements and outcomes"}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {language === "ko" ? "기술 스택" : "Tech Stack"}
-            </label>
-            <input
-              type="text"
-              value={formData.tech_stack}
-              onChange={(e) => setFormData({ ...formData, tech_stack: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder={language === "ko" ? "Selenium, Python, Jenkins (쉼표로 구분)" : "Selenium, Python, Jenkins (comma separated)"}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {language === "ko" ? "프로젝트 유형" : "Project Type"}
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {language === "ko" ? "프로젝트 제목 *" : "Project Title *"}
               </label>
               <input
                 type="text"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="QA Project"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className={fieldClass}
+                placeholder={language === "ko" ? "예: 결제 시스템 QA 자동화" : "e.g., Payment System QA Automation"}
+                required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {language === "ko" ? "기간" : "Period"}
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {language === "ko" ? "프로젝트 개요 *" : "Project Overview *"}
+              </label>
+              <textarea
+                value={formData.overview}
+                onChange={(e) => setFormData({ ...formData, overview: e.target.value })}
+                className={fieldClass}
+                rows={2}
+                placeholder={language === "ko" ? "프로젝트에 대한 간단한 설명" : "Brief description of the project"}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {language === "ko" ? "소속 회사" : "Company"}
+                </label>
+                <input
+                  type="text"
+                  value={formData.company}
+                  onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                  className={fieldClass}
+                  placeholder={company}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {language === "ko" ? "유형" : "Type"}
+                </label>
+                <input
+                  type="text"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className={fieldClass}
+                  placeholder="QA Project"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {language === "ko" ? "기간" : "Period"}
+                </label>
+                <input
+                  type="text"
+                  value={formData.period}
+                  onChange={(e) => setFormData({ ...formData, period: e.target.value })}
+                  className={fieldClass}
+                  placeholder="2024.01 - 2024.06"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {language === "ko" ? "기술 스택" : "Tech Stack"}
               </label>
               <input
                 type="text"
-                value={formData.period}
-                onChange={(e) => setFormData({ ...formData, period: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder={language === "ko" ? "2024.01 - 2024.06" : "2024.01 - 2024.06"}
+                value={formData.tech_stack}
+                onChange={(e) => setFormData({ ...formData, tech_stack: e.target.value })}
+                className={fieldClass}
+                placeholder={language === "ko" ? "Selenium, Python, Jenkins (쉼표로 구분)" : "Selenium, Python, Jenkins (comma separated)"}
               />
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          {/* 상세 정보 */}
+          <div className="space-y-4 border-t border-gray-200 pt-4">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              {language === "ko" ? "상세 정보" : "Details"}
+            </h3>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {language === "ko" ? "배경 설명" : "Background"}
+              </label>
+              <textarea
+                value={formData.background}
+                onChange={(e) => setFormData({ ...formData, background: e.target.value })}
+                className={fieldClass}
+                rows={3}
+                placeholder={language === "ko" ? "프로젝트가 시작된 배경, 해결하고자 한 문제 등" : "Why this project started, what problem it solved"}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {language === "ko" ? "상세 설명" : "Description"}
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className={fieldClass}
+                rows={3}
+                placeholder={language === "ko" ? "프로젝트의 구체적인 내용, 역할, 방법론 등" : "Detailed project content, your role, methodology, etc."}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {language === "ko" ? "주요 성과" : "Achievements"}
+              </label>
+              <textarea
+                value={formData.achievements}
+                onChange={(e) => setFormData({ ...formData, achievements: e.target.value })}
+                className={fieldClass}
+                rows={3}
+                placeholder={language === "ko" ? "한 줄에 하나씩 입력\n예:\n버그 검출률 30% 향상\n테스트 자동화 커버리지 80% 달성" : "One per line\ne.g.:\n30% improvement in bug detection\n80% test automation coverage"}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                {language === "ko" ? "줄바꿈으로 구분하면 목록으로 표시됩니다" : "Separate with new lines to display as a list"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
               {language === "ko" ? "취소" : "Cancel"}
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              {language === "ko" ? "저장" : "Save"}
+              {editingProject
+                ? (language === "ko" ? "수정 완료" : "Update")
+                : (language === "ko" ? "저장" : "Save")
+              }
             </button>
           </div>
         </form>
