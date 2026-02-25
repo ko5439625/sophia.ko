@@ -1,12 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { generateDynamicPortfolioPDF } from "../utils/dynamicPDFGenerator"
 import { generateInteractiveQuestionnaire, generateQuestionnairePDF } from "../utils/questionnaireGenerator"
 import { useAdmin } from "@/lib/admin-context"
-import { createClient } from "@/lib/supabase"
-
-const USER_ID = "sophia.ko"
 
 export default function HomePage() {
   const [searchValue, setSearchValue] = useState("")
@@ -30,29 +26,12 @@ export default function HomePage() {
     localStorage.setItem("language", newLanguage)
   }
 
-  const handlePDFDownload = async () => {
-    try {
-      // Check if uploaded portfolio PDF exists
-      const supabase = createClient()
-      const { data: settingsData } = await supabase
-        .from("user_settings")
-        .select("settings")
-        .eq("user_id", USER_ID)
-        .single()
-
-      const portfolioPdfUrl = settingsData?.settings?.portfolio_pdf_url
-
-      if (portfolioPdfUrl) {
-        // Download the uploaded PDF directly
-        window.open(portfolioPdfUrl, '_blank')
-      } else {
-        // Show alert that portfolio is being prepared
-        alert(language === "ko" ? "포트폴리오 PDF 준비중입니다." : "Portfolio PDF is being prepared.")
-      }
-    } catch (error) {
-      console.error("Error downloading portfolio PDF:", error)
-      alert(language === "ko" ? "PDF 다운로드 중 오류가 발생했습니다." : "Error downloading PDF")
-    }
+  const handlePDFDownload = () => {
+    // Direct download from public folder
+    const link = document.createElement('a')
+    link.href = '/portfolio.pdf'
+    link.download = '고아현_QA_포트폴리오.pdf'
+    link.click()
   }
 
   const handleInteractiveQuestionnaire = () => {
