@@ -219,7 +219,7 @@ export default function ExperiencePage() {
           }
         })
       },
-      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.01, rootMargin: '0px' }
     )
     const timer = setTimeout(() => {
       document.querySelectorAll('[data-scroll]').forEach((el) => observer.observe(el))
@@ -1128,7 +1128,7 @@ export default function ExperiencePage() {
                         const totalGroups = companyGroups.length
 
                         return (
-                          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {companyGroups.map((group) => {
                           const colorIdx = groupColorMap[group.groupKey] ?? 0
                           const color = timelineColors[colorIdx] || timelineColors[0]
@@ -1568,7 +1568,7 @@ export default function ExperiencePage() {
                       return (
                         <div className="space-y-6">
                           {/* Top: Clickable card tabs */}
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {cultureItems.map((item, i) => (
                               <button
                                 key={i}

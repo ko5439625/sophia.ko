@@ -20,6 +20,7 @@ export default function AboutPage() {
   const [contentReady, setContentReady] = useState(false)
   const [aiLoading, setAiLoading] = useState<number | null>(null)
   const [aiError, setAiError] = useState("")
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     // Initialize content cache from Supabase, then re-render
@@ -52,7 +53,7 @@ export default function AboutPage() {
           }
         })
       },
-      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.01, rootMargin: '0px' }
     )
     const timer = setTimeout(() => {
       document.querySelectorAll('[data-about-scroll]').forEach((el) => observer.observe(el))
@@ -227,7 +228,16 @@ export default function AboutPage() {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               {language === "ko" ? "검색으로 돌아가기" : "Back to Search"}
             </button>
-            <div className="flex items-center space-x-8">
+            {/* Hamburger button (mobile) */}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen
+                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                }
+              </svg>
+            </button>
+            <div className="hidden md:flex items-center space-x-8">
               <div className="flex space-x-8">
                 <div className="text-blue-600 font-medium border-b-2 border-blue-600 pb-4">About</div>
                 <button onClick={() => (window.location.href = "/experience")} className="text-gray-600 hover:text-gray-900 pb-4 transition-colors">Experience</button>
@@ -243,6 +253,22 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute left-0 right-0 top-full bg-white/95 backdrop-blur-sm border-t border-gray-200/50 shadow-lg px-6 py-4 space-y-1 z-50" style={{ animation: 'slideDown 0.2s ease-out' }}>
+            <style>{`@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+            <div className="text-blue-600 font-medium py-2.5 text-sm border-l-2 border-blue-600 pl-3">About</div>
+            <button onClick={() => (window.location.href = "/experience")} className="block w-full text-left text-gray-600 hover:text-gray-900 py-2.5 text-sm">Experience</button>
+            <button onClick={() => (window.location.href = "/blog")} className="block w-full text-left text-gray-600 hover:text-gray-900 py-2.5 text-sm">Blog</button>
+            <div className="flex items-center space-x-3 pt-3 border-t border-gray-100 mt-2">
+              <span className={`text-sm ${language === "ko" ? "text-gray-900 font-medium" : "text-gray-500"}`}>한국어</span>
+              <button onClick={() => handleLanguageChange(language === "ko" ? "en" : "ko")} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${language === "en" ? "bg-blue-600" : "bg-gray-300"}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${language === "en" ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+              <span className={`text-sm ${language === "en" ? "text-gray-900 font-medium" : "text-gray-500"}`}>EN</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={`max-w-5xl mx-auto px-6 py-12 transition-opacity duration-500 ${contentReady ? 'opacity-100' : 'opacity-0'}`}>
@@ -368,12 +394,31 @@ export default function AboutPage() {
 
           <div className="mt-8 pt-8 border-t border-gray-200/50">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              {defaultContacts.map((contact, i) => (
-                <div key={i} className="text-center lg:text-left">
-                  <EditableField value={c(`contact_${i}_l`, contact.l)} onSave={save(`contact_${i}_l`)} as="p" className="text-sm text-gray-500 mb-1" />
-                  <EditableField value={c(`contact_${i}_v`, contact.v)} onSave={save(`contact_${i}_v`)} as="p" className="text-gray-900 text-sm font-mono" />
-                </div>
-              ))}
+              {defaultContacts.map((contact, i) => {
+                const val = c(`contact_${i}_v`, contact.v)
+                const label = c(`contact_${i}_l`, contact.l).toLowerCase()
+                const getHref = () => {
+                  if (label.includes("email") || label.includes("이메일")) return `mailto:${val}`
+                  if (label.includes("phone") || label.includes("전화")) return `tel:${val}`
+                  if (val.includes("linkedin.com") || val.includes("github.com")) {
+                    return val.startsWith("http") ? val : `https://${val}`
+                  }
+                  return null
+                }
+                const href = getHref()
+                return (
+                  <div key={i} className="text-center lg:text-left">
+                    <EditableField value={c(`contact_${i}_l`, contact.l)} onSave={save(`contact_${i}_l`)} as="p" className="text-sm text-gray-500 mb-1" />
+                    {href && !isAdmin ? (
+                      <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="text-blue-600 hover:text-blue-800 text-sm font-mono underline underline-offset-2 transition-colors">
+                        {val}
+                      </a>
+                    ) : (
+                      <EditableField value={val} onSave={save(`contact_${i}_v`)} as="p" className="text-gray-900 text-sm font-mono" />
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

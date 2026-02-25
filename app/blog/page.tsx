@@ -53,6 +53,7 @@ export default function BlogPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState("")
   const [imageUploading, setImageUploading] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Debounce search
@@ -276,7 +277,17 @@ export default function BlogPage() {
             {language === "ko" ? "검색으로 돌아가기" : "Back to Search"}
           </button>
 
-          <div className="flex items-center space-x-8">
+          {/* Hamburger button (mobile) */}
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {mobileMenuOpen
+                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              }
+            </svg>
+          </button>
+
+          <div className="hidden md:flex items-center space-x-8">
             {["About", "Experience", "Vision", "Blog"].map((tab) => (
               <button
                 key={tab}
@@ -292,7 +303,7 @@ export default function BlogPage() {
             ))}
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="hidden md:flex items-center space-x-3">
             <span className={`text-sm ${language === "ko" ? "text-gray-900 font-medium" : "text-gray-500"}`}>한국어</span>
             <button
               onClick={() => handleLanguageChange(language === "ko" ? "en" : "ko")}
@@ -303,6 +314,26 @@ export default function BlogPage() {
             <span className={`text-sm ${language === "en" ? "text-gray-900 font-medium" : "text-gray-500"}`}>EN</span>
           </div>
         </div>
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute left-0 right-0 top-full bg-white/95 backdrop-blur-sm border-t border-gray-200/50 shadow-lg px-6 py-4 space-y-1 z-50" style={{ animation: 'slideDown 0.2s ease-out' }}>
+            <style>{`@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+            {["About", "Experience", "Vision", "Blog"].map((tab) => (
+              tab === "Blog" ? (
+                <div key={tab} className="text-blue-600 font-medium py-2.5 text-sm border-l-2 border-blue-600 pl-3">Blog</div>
+              ) : (
+                <button key={tab} onClick={() => window.location.href = `/${tab.toLowerCase()}`} className="block w-full text-left text-gray-600 hover:text-gray-900 py-2.5 text-sm">{tab}</button>
+              )
+            ))}
+            <div className="flex items-center space-x-3 pt-3 border-t border-gray-100 mt-2">
+              <span className={`text-sm ${language === "ko" ? "text-gray-900 font-medium" : "text-gray-500"}`}>한국어</span>
+              <button onClick={() => handleLanguageChange(language === "ko" ? "en" : "ko")} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${language === "en" ? "bg-blue-600" : "bg-gray-300"}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${language === "en" ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
+              <span className={`text-sm ${language === "en" ? "text-gray-900 font-medium" : "text-gray-500"}`}>EN</span>
+            </div>
+          </div>
+        )}
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-12">
