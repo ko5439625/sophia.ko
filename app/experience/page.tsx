@@ -1533,11 +1533,11 @@ export default function ExperiencePage() {
                           bgIdle: "bg-white/60 border-gray-100 hover:border-blue-200",
                           iconBg: "bg-blue-100",
                           story: language === "ko"
-                            ? "스몰톡은 다른 프로젝트 QA의 경험과 노하우를 직접 들을 수 있는 귀중한 자리입니다. AI 도구 활용법, 자동화 테스트 전략, 게임 방법론 등 매번 새로운 인사이트를 얻었고, 이를 실제 업무에 적용하며 시야를 넓혔습니다."
-                            : "Small Talks are invaluable opportunities to hear experiences from QA across different projects. Each session on AI tools, automation strategies, and game methodology provided fresh insights that I applied directly to my work.",
+                            ? "단순히 듣는 자리가 아니라, 매 회차마다 주제에 대해 미리 고민하고 적극적으로 의견을 나누며 참여했습니다. AI 도구 활용법, 자동화 테스트 전략, 게임 방법론 등에서 얻은 인사이트를 실제 업무에 바로 적용하고, 그 결과를 다시 공유하며 선순환을 만들어왔습니다."
+                            : "Rather than just attending, I actively prepared thoughts on each topic and engaged in discussions. Insights from AI tools, automation strategies, and game methodology were immediately applied to my work, creating a virtuous cycle of learning and sharing.",
                           quote: language === "ko"
-                            ? "\"빠지지 않는 것 자체가 태도이자 성장입니다\""
-                            : "\"Showing up consistently is both an attitude and growth\"",
+                            ? "\"듣는 것에서 그치지 않고, 적용하고 다시 나누는 것이 진짜 참여입니다\""
+                            : "\"True participation means applying what you learn and sharing it back\"",
                         },
                         {
                           label: language === "ko" ? "\"잠깐, 이거 맞아?\" 스몰톡 리딩" : "Leading \"Wait, Is This Right?\" Talk",
