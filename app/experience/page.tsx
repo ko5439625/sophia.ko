@@ -880,6 +880,99 @@ export default function ExperiencePage() {
                   </div>
                 </div>
 
+                {/* Culture & Leadership - 정성 요소 */}
+                <div data-scroll>
+                  <SectionHeader
+                    title={language === "ko" ? "조직 문화 & 리더십" : "Culture & Leadership"}
+                    editKey="cultureTitle"
+                  />
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {/* 동호회 운영 */}
+                    <div className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                      <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-4 border border-amber-100">
+                        <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                      </div>
+                      <EditableField
+                        value={c("culture_0_t", language === "ko" ? "동호회 창설 & 운영" : "Club Founding & Management")}
+                        onSave={save("culture_0_t")}
+                        as="h3"
+                        className="text-lg font-semibold text-gray-900 mb-3"
+                      />
+                      <EditableField
+                        value={c("culture_0_d", language === "ko"
+                          ? "Point Mobile 재직 시 '모던아트' 동호회를 직접 창설하고 회장으로 운영했습니다. 당시 트렌드였던 오일 파스텔 수업을 위해 전문 강사를 직접 섭외하고, 회사 지원금을 활용하여 조직 내 문화 생활과 친목 도모를 이끌었습니다."
+                          : "Founded and led the 'Modern Art' club at Point Mobile as president. Personally recruited professional instructors for oil pastel classes (then trending), utilizing company funding to foster team culture and bonding."
+                        )}
+                        onSave={save("culture_0_d")}
+                        as="p"
+                        className="text-gray-700 text-sm leading-relaxed mb-4"
+                        multiline
+                      />
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium border border-amber-100">{language === "ko" ? "리더십" : "Leadership"}</span>
+                        <span className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium border border-amber-100">{language === "ko" ? "기획·조율" : "Planning"}</span>
+                        <span className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-medium border border-amber-100">{language === "ko" ? "문화 주도" : "Culture"}</span>
+                      </div>
+                    </div>
+
+                    {/* 스몰톡 전 회차 참여 */}
+                    <div className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4 border border-blue-100">
+                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      </div>
+                      <EditableField
+                        value={c("culture_1_t", language === "ko" ? "스몰톡 전 회차 참여" : "Full Small Talk Attendance")}
+                        onSave={save("culture_1_t")}
+                        as="h3"
+                        className="text-lg font-semibold text-gray-900 mb-3"
+                      />
+                      <EditableField
+                        value={c("culture_1_d", language === "ko"
+                          ? "NCsoft에서 년 2회 진행되는 스몰톡 활동에 한 번도 빠짐없이 참여하고 있습니다. 업무 자동화·AI 관련 스몰톡에서 실무 인사이트를 얻고, 게임 방법론 및 실제 게임 스몰톡을 통해 게임에 대한 이해도와 QA 프로세스 이해도를 높였습니다."
+                          : "Attended every single NCsoft Small Talk session (held twice yearly) without exception. Gained practical insights from automation & AI sessions, and deepened game understanding through game methodology discussions with QA engineers from other projects."
+                        )}
+                        onSave={save("culture_1_d")}
+                        as="p"
+                        className="text-gray-700 text-sm leading-relaxed mb-4"
+                        multiline
+                      />
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium border border-blue-100">{language === "ko" ? "적극적 참여" : "Active"}</span>
+                        <span className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium border border-blue-100">{language === "ko" ? "크로스 팀 교류" : "Cross-team"}</span>
+                        <span className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-medium border border-blue-100">{language === "ko" ? "인사이트" : "Insight"}</span>
+                      </div>
+                    </div>
+
+                    {/* 스몰톡 리딩 */}
+                    <div className="relative bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                      <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center mb-4 border border-purple-100">
+                        <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                      </div>
+                      <EditableField
+                        value={c("culture_2_t", language === "ko" ? "\"잠깐, 이거 맞아?\" 스몰톡 리딩" : "Leading \"Wait, Is This Right?\" Talk")}
+                        onSave={save("culture_2_t")}
+                        as="h3"
+                        className="text-lg font-semibold text-gray-900 mb-3"
+                      />
+                      <EditableField
+                        value={c("culture_2_d", language === "ko"
+                          ? "업무 중 문득 떠오르는 질문들 — '이건 왜 이렇게 할까?', '나는 왜 이 부분을 중요하게 볼까?' — 에 대한 생각과 의견을 나누는 스몰톡을 직접 기획하고 진행하고 있습니다. 정답이나 결론 없이 서로의 시선을 통해 사고를 확장할 수 있도록 하여, 참가자들로부터 긍정적인 피드백을 받고 있습니다."
+                          : "Planning and leading a Small Talk series exploring spontaneous work questions — 'Why do we do it this way?', 'Why do I prioritize this?' — sharing perspectives and attitudes freely. With no fixed answers or conclusions, participants expand their thinking through each other's viewpoints, receiving positive feedback."
+                        )}
+                        onSave={save("culture_2_d")}
+                        as="p"
+                        className="text-gray-700 text-sm leading-relaxed mb-4"
+                        multiline
+                      />
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-medium border border-purple-100">{language === "ko" ? "퍼실리테이션" : "Facilitation"}</span>
+                        <span className="text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-medium border border-purple-100">{language === "ko" ? "사고 확장" : "Critical Thinking"}</span>
+                        <span className="text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full font-medium border border-purple-100">{language === "ko" ? "주도적" : "Initiative"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Tech Stack & Certifications */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8" data-scroll>
                   <div>
@@ -1406,6 +1499,46 @@ export default function ExperiencePage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Culture & Growth Philosophy */}
+                <div data-scroll>
+                  <SectionHeader title={language === "ko" ? "함께 성장하는 문화" : "Growing Together"} editKey="cultureVisionTitle" />
+                  <div className="bg-gradient-to-br from-white via-amber-50/30 to-white rounded-2xl border border-amber-200/50 p-8 md:p-10">
+                    <div className="grid md:grid-cols-2 gap-8 items-center">
+                      <div>
+                        <EditableField
+                          value={c("cultureVision_d", language === "ko"
+                            ? "기술적 역량만으로는 좋은 QA를 만들 수 없다고 생각합니다. 조직 내 소통과 문화가 뒷받침될 때 비로소 진정한 시너지가 만들어집니다.\n\nPoint Mobile에서 '모던아트' 동호회를 직접 창설하여 오일 파스텔 수업을 기획·운영했고, NCsoft에서는 스몰톡 활동에 매 회차 빠짐없이 참여하며 타 프로젝트 QA와의 교류를 통해 시야를 넓혔습니다. 현재는 '잠깐, 이거 맞아?'라는 스몰톡을 직접 이끌며, 일을 바라보는 관점과 태도를 자유롭게 공유하는 자리를 만들고 있습니다."
+                            : "Technical expertise alone doesn't make great QA. True synergy emerges when communication and culture are in place.\n\nI founded the 'Modern Art' club at Point Mobile, organizing oil pastel workshops, and at NCsoft, I've attended every Small Talk session to broaden perspectives through cross-project QA exchanges. Currently, I lead the 'Wait, Is This Right?' talk series — creating a space where we freely share our viewpoints and attitudes toward work."
+                          )}
+                          onSave={save("cultureVision_d")}
+                          as="p"
+                          className="text-gray-700 leading-relaxed text-sm whitespace-pre-line"
+                          multiline
+                        />
+                      </div>
+                      <div className="space-y-4">
+                        {[
+                          { icon: "🎨", label: language === "ko" ? "동호회 창설 & 회장 역임" : "Founded & Led Art Club", sub: language === "ko" ? "Point Mobile 모던아트 — 강사 섭외, 회사 지원금 운영" : "Point Mobile Modern Art — instructor hiring, company funding" },
+                          { icon: "💬", label: language === "ko" ? "스몰톡 전 회차 참여" : "100% Small Talk Attendance", sub: language === "ko" ? "NCsoft 년 2회 · AI, 자동화, 게임 방법론 등" : "NCsoft biannual · AI, automation, game methodology" },
+                          { icon: "🎙️", label: language === "ko" ? "\"잠깐, 이거 맞아?\" 스몰톡 리딩" : "Leading \"Wait, Is This Right?\" Talk", sub: language === "ko" ? "사고 확장형 자유 토론 · 긍정적 피드백 수령 중" : "Free-form thought expansion · receiving positive feedback" }
+                        ].map((item, i) => (
+                          <div key={i} className="flex items-start gap-3 bg-white/80 rounded-xl p-4 border border-gray-100">
+                            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                              {i === 0 && <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>}
+                              {i === 1 && <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
+                              {i === 2 && <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 text-sm">{item.label}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{item.sub}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
 

@@ -193,11 +193,13 @@ export default function AboutPage() {
     { q: "5년간 가장 중요하게 생각하는 QA 가치는?", a: "예방적 접근법입니다. 버그를 찾아내는 것도 중요하지만, 애초에 버그가 발생하지 않도록 하는 것이 더 중요하다고 생각합니다. 요구사항 분석 단계부터 참여하여 모호한 부분을 명확히 하고, 개발 초기부터 테스트 케이스를 설계하여 품질을 내재화하는 것이 진정한 QA의 가치라고 믿습니다." },
     { q: "다른 QA와 차별화되는 강점은?", a: "개발팀과의 원활한 소통 능력입니다. 단순히 버그를 보고하는 것이 아니라, 재현 단계를 명확히 정리하고 근본 원인을 함께 분석합니다. 또한 자동화 도구를 활용하여 반복적인 테스트를 효율화하고, 데이터 기반으로 우선순위를 결정하는 체계적인 접근 방식을 가지고 있습니다." },
     { q: "가장 기억에 남는 프로젝트는?", a: "결제 시스템 품질 검증 프로젝트입니다. 금융 서비스의 특성상 단 하나의 오류도 용납할 수 없는 상황에서, 다양한 결제 시나리오와 예외 상황을 체계적으로 테스트했습니다. 특히 동시 결제, 네트워크 오류, 부분 결제 등의 엣지 케이스를 발견하고 해결하여 99.7%의 성공률을 달성했습니다." },
+    { q: "조직 문화에 기여하는 방식은?", a: "기술적 역량만큼 조직 내 소통과 문화가 중요하다고 생각합니다. Point Mobile에서는 '모던아트' 동호회를 직접 창설하여 회장으로 운영하며, 오일 파스텔 전문 강사를 섭외하고 회사 지원금으로 구성원들의 문화 생활과 친목 도모를 이끌었습니다. NCsoft에서는 년 2회 진행되는 스몰톡 활동에 한 번도 빠짐없이 참여하며, 업무 자동화·AI·게임 방법론 등 다양한 주제의 교류를 통해 시야를 넓혔습니다. 현재는 '잠깐, 이거 맞아?'라는 스몰톡을 직접 이끌며, 정답 없이 서로의 시선을 통해 사고를 확장하는 자리를 만들어 긍정적인 피드백을 받고 있습니다." },
   ] : [
     { q: "What got you into QA?", a: "During my computer science studies, I discovered bugs in what I thought was perfect code. That moment taught me the importance of seeing products from a user's perspective. Quality assurance became my passion." },
     { q: "Core QA philosophy?", a: "Prevention over detection. While finding bugs is important, preventing them is crucial. I participate from requirements analysis, clarify ambiguities, and design test cases early to build quality into the product." },
     { q: "What makes you different?", a: "Seamless communication with dev teams. I don't just report bugs - I provide clear reproduction steps and collaborate on root cause analysis. Plus, I leverage automation tools and make data-driven priority decisions." },
     { q: "Most memorable project?", a: "Payment system quality verification. With zero tolerance for errors in financial services, I systematically tested various payment scenarios and edge cases, achieving 99.7% success rate." },
+    { q: "How do you contribute to team culture?", a: "I believe communication and culture are as important as technical skills. At Point Mobile, I founded the 'Modern Art' club as president, recruiting professional oil pastel instructors and managing company funding to foster team bonding. At NCsoft, I've attended every biannual Small Talk session, gaining insights from automation, AI, and game methodology discussions. Currently, I lead the 'Wait, Is This Right?' talk series — creating a space where colleagues expand thinking through shared perspectives, receiving positive feedback." },
   ]
 
   const defaultStats = language === "ko"
