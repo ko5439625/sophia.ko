@@ -396,21 +396,13 @@ export default function AboutPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {defaultContacts.map((contact, i) => {
                 const val = c(`contact_${i}_v`, contact.v)
-                const label = c(`contact_${i}_l`, contact.l).toLowerCase()
-                const getHref = () => {
-                  if (label.includes("email") || label.includes("이메일")) return `mailto:${val}`
-                  if (label.includes("phone") || label.includes("전화")) return `tel:${val}`
-                  if (val.includes("linkedin.com") || val.includes("github.com")) {
-                    return val.startsWith("http") ? val : `https://${val}`
-                  }
-                  return null
-                }
-                const href = getHref()
+                const isLinkedIn = val.includes("linkedin.com")
+                const linkedInHref = isLinkedIn ? (val.startsWith("http") ? val : `https://${val}`) : null
                 return (
                   <div key={i} className="text-center lg:text-left">
                     <EditableField value={c(`contact_${i}_l`, contact.l)} onSave={save(`contact_${i}_l`)} as="p" className="text-sm text-gray-500 mb-1" />
-                    {href && !isAdmin ? (
-                      <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="text-blue-600 hover:text-blue-800 text-sm font-mono underline underline-offset-2 transition-colors">
+                    {linkedInHref && !isAdmin ? (
+                      <a href={linkedInHref} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm font-mono underline underline-offset-2 transition-colors">
                         {val}
                       </a>
                     ) : (
