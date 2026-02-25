@@ -1,16 +1,6 @@
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
-  // PDF text extraction is disabled for now
-  // To enable: install pdf-parse (npm install pdf-parse)
-
-  return NextResponse.json({
-    error: "PDF text extraction feature is currently disabled",
-    fallback: "PDF 파일에서 텍스트를 추출하는 기능은 현재 비활성화되어 있습니다. 텍스트를 직접 입력해주세요.",
-    message: "This feature requires the pdf-parse library. Please enter text manually instead."
-  }, { status: 501 })
-
-  /* ORIGINAL CODE - Enable if pdf-parse is installed
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -19,24 +9,70 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
+    // Read the file as text - basic extraction
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    try {
-      const pdfParse = (await import('pdf-parse')).default
-      const data = await pdfParse(buffer)
+    // Simple PDF text extraction without external library
+    // Extract readable text between stream markers
+    const pdfString = buffer.toString('latin1')
+    const textChunks: string[] = []
 
+    // Method 1: Extract text between BT/ET markers (PDF text objects)
+    const btEtRegex = /BT\s*([\s\S]*?)\s*ET/g
+    let match
+    while ((match = btEtRegex.exec(pdfString)) !== null) {
+      const textBlock = match[1]
+      // Extract text from Tj and TJ operators
+      const tjRegex = /\(([^)]*)\)\s*Tj/g
+      let tjMatch
+      while ((tjMatch = tjRegex.exec(textBlock)) !== null) {
+        const decoded = tjMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '')
+          .replace(/\\\(/g, '(')
+          .replace(/\\\)/g, ')')
+          .replace(/\\\\/g, '\\')
+        if (decoded.trim()) textChunks.push(decoded)
+      }
+
+      // TJ array operator
+      const tjArrayRegex = /\[(.*?)\]\s*TJ/g
+      let tjArrMatch
+      while ((tjArrMatch = tjArrayRegex.exec(textBlock)) !== null) {
+        const parts = tjArrMatch[1]
+        const strRegex = /\(([^)]*)\)/g
+        let strMatch
+        let line = ''
+        while ((strMatch = strRegex.exec(parts)) !== null) {
+          line += strMatch[1]
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '')
+            .replace(/\\\(/g, '(')
+            .replace(/\\\)/g, ')')
+            .replace(/\\\\/g, '\\')
+        }
+        if (line.trim()) textChunks.push(line)
+      }
+    }
+
+    let extractedText = textChunks.join('\n').trim()
+
+    // If basic extraction got nothing useful, inform the user
+    if (!extractedText || extractedText.length < 10) {
       return NextResponse.json({
         success: true,
-        text: data.text,
-        pages: data.numpages
+        text: `[PDF 파일: ${file.name}]\n\n이 PDF에서 텍스트를 자동 추출할 수 없습니다.\n파일 내용을 직접 복사하여 붙여넣어 주세요.`,
+        pages: 0,
+        note: "automatic_extraction_limited"
       })
-    } catch (error) {
-      return NextResponse.json({
-        error: "PDF parsing failed",
-        fallback: "PDF 파일에서 텍스트를 추출하려면 pdf-parse 라이브러리가 필요합니다. 대신 텍스트를 직접 입력해주세요."
-      }, { status: 500 })
     }
+
+    return NextResponse.json({
+      success: true,
+      text: extractedText,
+      pages: 0
+    })
 
   } catch (error: any) {
     console.error("PDF extraction error:", error)
@@ -45,5 +81,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-  */
 }

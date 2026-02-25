@@ -16,36 +16,55 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only PDF files allowed" }, { status: 400 })
     }
 
-    // Check file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: "File size exceeds 10MB" }, { status: 400 })
+    // Check file size (5MB limit for DB storage)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "File size exceeds 5MB" }, { status: 400 })
     }
+
+    // Convert file to base64
+    const arrayBuffer = await file.arrayBuffer()
+    const base64 = Buffer.from(arrayBuffer).toString('base64')
 
     const supabase = createClient()
 
-    // Upload to Supabase Storage
-    const fileName = `portfolio-${USER_ID}-${Date.now()}.pdf`
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('portfolios')
-      .upload(fileName, file, {
-        contentType: 'application/pdf',
-        upsert: true
+    // Store in portfolio_content table as base64
+    const { error: upsertError } = await supabase
+      .from("portfolio_content")
+      .upsert({
+        user_id: USER_ID,
+        language: "ko",
+        content_key: "portfolio_pdf_data",
+        content_value: base64,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,language,content_key'
       })
 
-    if (uploadError) {
-      console.error("Upload error:", uploadError)
-      return NextResponse.json({ error: "Upload failed: " + uploadError.message }, { status: 500 })
+    if (upsertError) {
+      console.error("DB save error:", upsertError)
+      return NextResponse.json({ error: "Failed to save PDF: " + upsertError.message }, { status: 500 })
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('portfolios')
-      .getPublicUrl(fileName)
+    // Save filename separately
+    await supabase
+      .from("portfolio_content")
+      .upsert({
+        user_id: USER_ID,
+        language: "ko",
+        content_key: "portfolio_pdf_name",
+        content_value: file.name,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,language,content_key'
+      })
+
+    // Return the API URL for downloading
+    const downloadUrl = `/api/download-portfolio-pdf`
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      fileName: fileName
+      url: downloadUrl,
+      fileName: file.name
     })
 
   } catch (error: any) {
