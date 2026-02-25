@@ -387,10 +387,10 @@ export default function AboutPage() {
 
           <div className="grid gap-6">
             {defaultInfo.map((item, i) => (
-              <div key={i} className="group bg-white/60 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/50 p-6 hover:shadow-md hover:bg-white/80 transition-all duration-300" data-about-scroll style={{ transitionDelay: `${i * 0.1}s` }}>
+              <div key={i} className={`group rounded-2xl shadow-sm p-6 hover:shadow-md transition-all duration-300 ${i === defaultInfo.length - 1 ? 'bg-sky-50/80 backdrop-blur-sm border border-sky-200/60 hover:bg-sky-100/70' : 'bg-white/60 backdrop-blur-sm border border-gray-200/50 hover:bg-white/80'}`} data-about-scroll style={{ transitionDelay: `${i * 0.1}s` }}>
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors duration-300">
-                    <span className="text-xl text-gray-600">Q</span>
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors duration-300 ${i === defaultInfo.length - 1 ? 'bg-sky-100 group-hover:bg-sky-200' : 'bg-gray-100 group-hover:bg-gray-200'}`}>
+                    <span className={`text-xl ${i === defaultInfo.length - 1 ? 'text-sky-600' : 'text-gray-600'}`}>Q</span>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-start justify-between gap-3 mb-3">
