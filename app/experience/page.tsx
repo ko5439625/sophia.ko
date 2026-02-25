@@ -86,6 +86,7 @@ export default function ExperiencePage() {
   const [selectedCompany, setSelectedCompany] = useState<string>("")
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [activeCultureCard, setActiveCultureCard] = useState<number>(0)
 
   // expandedCompany는 이제 타임라인 항목의 ID를 저장 (회사명 대신)
   // Drag & Drop states (admin only)
@@ -650,6 +651,7 @@ export default function ExperiencePage() {
         @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes stepReveal { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes arrowFade { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes cultureCardFade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .roadmap-step { opacity: 0; animation: stepReveal 0.8s ease-out forwards; }
         .roadmap-arrow { opacity: 0; animation: arrowFade 0.5s ease-out forwards; }
       `}</style>
@@ -1506,39 +1508,117 @@ export default function ExperiencePage() {
                 <div data-scroll>
                   <SectionHeader title={language === "ko" ? "함께 성장하는 문화" : "Growing Together"} editKey="cultureVisionTitle" />
                   <div className="bg-gradient-to-br from-white via-amber-50/30 to-white rounded-2xl border border-amber-200/50 p-8 md:p-10">
-                    <div className="grid md:grid-cols-2 gap-8 items-center">
-                      <div>
-                        <EditableField
-                          value={c("cultureVision_d", language === "ko"
-                            ? "기술적 역량만으로는 좋은 QA를 만들 수 없다고 생각합니다. 조직 내 소통과 문화가 뒷받침될 때 비로소 진정한 시너지가 만들어집니다.\n\nPoint Mobile에서 '모던아트' 동호회를 직접 창설하여 오일 파스텔 수업을 기획·운영했고, NCsoft에서는 스몰톡 활동에 매 회차 빠짐없이 참여하며 타 프로젝트 QA와의 교류를 통해 시야를 넓혔습니다. 현재는 '잠깐, 이거 맞아?'라는 스몰톡을 직접 이끌며, 일을 바라보는 관점과 태도를 자유롭게 공유하는 자리를 만들고 있습니다."
-                            : "Technical expertise alone doesn't make great QA. True synergy emerges when communication and culture are in place.\n\nI founded the 'Modern Art' club at Point Mobile, organizing oil pastel workshops, and at NCsoft, I've attended every Small Talk session to broaden perspectives through cross-project QA exchanges. Currently, I lead the 'Wait, Is This Right?' talk series — creating a space where we freely share our viewpoints and attitudes toward work."
-                          )}
-                          onSave={save("cultureVision_d")}
-                          as="p"
-                          className="text-gray-700 leading-relaxed text-sm whitespace-pre-line"
-                          multiline
-                        />
-                      </div>
-                      <div className="space-y-4">
-                        {[
-                          { icon: "🎨", label: language === "ko" ? "동호회 창설 & 회장 역임" : "Founded & Led Art Club", sub: language === "ko" ? "Point Mobile 모던아트 — 강사 섭외, 회사 지원금 운영" : "Point Mobile Modern Art — instructor hiring, company funding" },
-                          { icon: "💬", label: language === "ko" ? "스몰톡 전 회차 참여" : "100% Small Talk Attendance", sub: language === "ko" ? "NCsoft 년 2회 · AI, 자동화, 게임 방법론 등" : "NCsoft biannual · AI, automation, game methodology" },
-                          { icon: "🎙️", label: language === "ko" ? "\"잠깐, 이거 맞아?\" 스몰톡 리딩" : "Leading \"Wait, Is This Right?\" Talk", sub: language === "ko" ? "사고 확장형 자유 토론 · 긍정적 피드백 수령 중" : "Free-form thought expansion · receiving positive feedback" }
-                        ].map((item, i) => (
-                          <div key={i} className="flex items-start gap-3 bg-white/80 rounded-xl p-4 border border-gray-100">
-                            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                              {i === 0 && <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>}
-                              {i === 1 && <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
-                              {i === 2 && <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900 text-sm">{item.label}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">{item.sub}</p>
+                    {/* Interactive Culture Cards */}
+                    {(() => {
+                      const cultureItems = [
+                        {
+                          label: language === "ko" ? "동호회 창설 & 회장 역임" : "Founded & Led Art Club",
+                          sub: language === "ko" ? "Point Mobile 모던아트 — 강사 섭외, 회사 지원금 운영" : "Point Mobile Modern Art — instructor hiring, company funding",
+                          color: "amber",
+                          bgActive: "bg-amber-50/80 border-amber-300",
+                          bgIdle: "bg-white/60 border-gray-100 hover:border-amber-200",
+                          iconBg: "bg-amber-100",
+                          story: language === "ko"
+                            ? "단순히 취미를 공유하는 것이 아니라, 업무 외 시간에 직원들이 자연스럽게 교류할 수 있는 공간을 만들고 싶었습니다. 강사 섭외부터 예산 확보, 일정 조율까지 직접 담당하며 매 분기 새로운 테마를 기획했고, 회사에서 공식 지원금을 받아 운영했습니다."
+                            : "I wanted to create a space where colleagues could connect naturally outside of work. From hiring instructors to securing budget and coordinating schedules, I planned new themes each quarter and operated with official company funding.",
+                          quote: language === "ko"
+                            ? "\"함께 그리는 시간이 함께 일하는 시간도 바꿉니다\""
+                            : "\"Time spent creating together transforms how we work together\"",
+                        },
+                        {
+                          label: language === "ko" ? "스몰톡 전 회차 참여" : "100% Small Talk Attendance",
+                          sub: language === "ko" ? "NCsoft 년 2회 · AI, 자동화, 게임 방법론 등" : "NCsoft biannual · AI, automation, game methodology",
+                          color: "blue",
+                          bgActive: "bg-blue-50/80 border-blue-300",
+                          bgIdle: "bg-white/60 border-gray-100 hover:border-blue-200",
+                          iconBg: "bg-blue-100",
+                          story: language === "ko"
+                            ? "스몰톡은 다른 프로젝트 QA의 경험과 노하우를 직접 들을 수 있는 귀중한 자리입니다. AI 도구 활용법, 자동화 테스트 전략, 게임 방법론 등 매번 새로운 인사이트를 얻었고, 이를 실제 업무에 적용하며 시야를 넓혔습니다."
+                            : "Small Talks are invaluable opportunities to hear experiences from QA across different projects. Each session on AI tools, automation strategies, and game methodology provided fresh insights that I applied directly to my work.",
+                          quote: language === "ko"
+                            ? "\"빠지지 않는 것 자체가 태도이자 성장입니다\""
+                            : "\"Showing up consistently is both an attitude and growth\"",
+                        },
+                        {
+                          label: language === "ko" ? "\"잠깐, 이거 맞아?\" 스몰톡 리딩" : "Leading \"Wait, Is This Right?\" Talk",
+                          sub: language === "ko" ? "사고 확장형 자유 토론 · 긍정적 피드백 수령 중" : "Free-form thought expansion · receiving positive feedback",
+                          color: "purple",
+                          bgActive: "bg-purple-50/80 border-purple-300",
+                          bgIdle: "bg-white/60 border-gray-100 hover:border-purple-200",
+                          iconBg: "bg-purple-100",
+                          story: language === "ko"
+                            ? "당연하게 여기던 업무 방식에 질문을 던지고, 서로의 관점을 자유롭게 공유하는 토론을 이끌고 있습니다. '이렇게 하는 게 맞을까?'라는 물음에서 시작해, 더 나은 방법을 함께 찾아가는 과정 자체가 팀의 역량을 키웁니다."
+                            : "I lead discussions that question established workflows and freely share different perspectives. Starting from 'Is this really the right way?', the process of finding better methods together strengthens our team's capabilities.",
+                          quote: language === "ko"
+                            ? "\"질문이 문화가 되면, 성장이 습관이 됩니다\""
+                            : "\"When questioning becomes culture, growth becomes habit\"",
+                        }
+                      ]
+                      const activeItem = cultureItems[activeCultureCard]
+                      const colorMap: Record<string, string> = {
+                        amber: "text-amber-600",
+                        blue: "text-blue-600",
+                        purple: "text-purple-600",
+                      }
+                      const dotColorMap: Record<string, string> = {
+                        amber: "bg-amber-400",
+                        blue: "bg-blue-400",
+                        purple: "bg-purple-400",
+                      }
+                      return (
+                        <div className="space-y-6">
+                          {/* Top: Clickable card tabs */}
+                          <div className="grid grid-cols-3 gap-3">
+                            {cultureItems.map((item, i) => (
+                              <button
+                                key={i}
+                                onClick={() => setActiveCultureCard(i)}
+                                className={`relative text-left rounded-xl p-4 border-2 transition-all duration-300 cursor-pointer ${
+                                  activeCultureCard === i
+                                    ? `${item.bgActive} shadow-md scale-[1.02]`
+                                    : `${item.bgIdle} opacity-80 hover:opacity-100 hover:shadow-sm`
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 mb-1.5">
+                                  <div className={`w-7 h-7 ${activeCultureCard === i ? item.iconBg : "bg-gray-100"} rounded-lg flex items-center justify-center flex-shrink-0 transition-colors duration-300`}>
+                                    {i === 0 && <svg className={`w-3.5 h-3.5 ${activeCultureCard === i ? "text-amber-500" : "text-gray-400"} transition-colors duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>}
+                                    {i === 1 && <svg className={`w-3.5 h-3.5 ${activeCultureCard === i ? "text-blue-500" : "text-gray-400"} transition-colors duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
+                                    {i === 2 && <svg className={`w-3.5 h-3.5 ${activeCultureCard === i ? "text-purple-500" : "text-gray-400"} transition-colors duration-300`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>}
+                                  </div>
+                                  <p className={`font-semibold text-sm ${activeCultureCard === i ? "text-gray-900" : "text-gray-600"} transition-colors duration-300`}>{item.label}</p>
+                                </div>
+                                <p className={`text-xs ${activeCultureCard === i ? "text-gray-600" : "text-gray-400"} transition-colors duration-300 line-clamp-2`}>{item.sub}</p>
+                                {/* Active indicator */}
+                                {activeCultureCard === i && (
+                                  <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 ${dotColorMap[item.color]} rounded-full shadow-sm`} />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Bottom: Expanded detail for selected card */}
+                          <div
+                            key={activeCultureCard}
+                            className="bg-white/80 rounded-2xl border border-gray-200/60 p-6 md:p-8"
+                            style={{ animation: "cultureCardFade 0.4s ease-out" }}
+                          >
+                            <div className="grid md:grid-cols-[1fr,auto] gap-6 items-start">
+                              <div className="space-y-4">
+                                <p className="text-gray-700 leading-relaxed text-sm">{activeItem.story}</p>
+                                <blockquote className={`text-sm font-medium italic ${colorMap[activeItem.color]} border-l-2 pl-4`} style={{ borderColor: "currentColor" }}>
+                                  {activeItem.quote}
+                                </blockquote>
+                              </div>
+                              <div className={`hidden md:flex w-20 h-20 ${activeItem.iconBg} rounded-2xl items-center justify-center flex-shrink-0`}>
+                                {activeCultureCard === 0 && <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>}
+                                {activeCultureCard === 1 && <svg className="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
+                                {activeCultureCard === 2 && <svg className="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>}
+                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
 
